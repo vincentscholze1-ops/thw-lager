@@ -1,0 +1,21 @@
+{
+  "name": "THW-Jugend Lagerverwaltung",
+  "short_name": "THW-Lager",
+  "description": "Lagerverwaltung für die THW-Jugend Döbeln",
+  "start_url": "Test-Jugendbekleidung.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0056b3",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

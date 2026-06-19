@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0056b3">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lagerverwaltung</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        /* Tabs - Erhöhter Kontrast */
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 3px solid #0056b3; flex-wrap: wrap; }
+        .tab-btn { background-color: #495057; color: #ffffff; border: none; padding: 12px 20px; font-size: 16px; cursor: pointer; border-radius: 6px 6px 0 0; outline: none; transition: background-color 0.2s; }
+        .tab-btn:hover { background-color: #343a40; }
+        .tab-btn.active { background-color: #0056b3; font-weight: bold; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Tables & Forms */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; }
+        button { background-color: #007bff; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-size: 14px; }
+        button:hover { background-color: #0056b3; }
+        
+        /* Buttons */
+        .btn-danger { background-color: #dc3545; padding: 6px 10px; font-size: 12px; }
+        .btn-danger:hover { background-color: #c82333; }
+        .btn-secondary { background-color: #6c757d; padding: 6px 10px; font-size: 12px; margin-right: 5px; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        
+        /* Layouts */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .grid-5 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 20px; }
+        .card { border: 1px solid #ddd; padding: 15px; border-radius: 4px; background: #fafafa; margin-bottom: 20px; }
+        .full-width { grid-column: 1 / -1; }
+        
+        /* Employee Details */
+        .emp-list { list-style: none; padding: 0; }
+        .emp-list li { padding: 10px; background: #fff; border: 1px solid #ddd; margin-bottom: 5px; cursor: pointer; border-radius: 4px; }
+        .emp-list li:hover { background: #f0f8ff; }
+        .emp-header { display: flex; justify-content: space-between; align-items: center; }
+        .emp-details { display: none; margin-top: 10px; padding: 10px; background: #e9ecef; border-radius: 4px; cursor: default; }
+
+        /* Search & Filter bars */
+        .filter-bar { padding: 10px; background: #e9ecef; border-radius: 4px; margin-bottom: 15px; display: flex; gap: 10px; align-items: center; }
+
+        /* Colors for Cards */
+        .card.add-card { border-color: #28a745; border-left: 5px solid #28a745; }
+        .card.remove-card { border-color: #dc3545; border-left: 5px solid #dc3545; }
+        .card.borrow-card { border-color: #28a745; border-left: 5px solid #28a745; }
+        .card.return-card { border-color: #dc3545; border-left: 5px solid #dc3545; }
+        .card.query-card { border-color: #0056b3; border-left: 5px solid #0056b3; }
+        .card.bulk-card { border-color: #17a2b8; border-left: 5px solid #17a2b8; }
+        
+        .out-of-stock-row { background-color: #ffeef0 !important; color: #dc3545; font-weight: bold; }
+        
+        .inventory-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .inventory-tab-btn { background-color: #e9ecef; color: #333; border: 2px solid #ddd; padding: 10px 15px; font-size: 14px; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .inventory-tab-btn:hover { background-color: #d9dfe5; }
+        .inventory-tab-btn.active { background-color: #0056b3; color: white; border-color: #0056b3; font-weight: bold; }
+
+        /* Query Result */
+        .query-result { margin-top: 15px; padding: 15px; border-radius: 4px; display: none; }
+        .query-result.success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; display: block; }
+        .query-result.partial { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; display: block; }
+        .query-result.error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; display: block; }
+        .query-result h4 { margin-top: 0; margin-bottom: 10px; }
+        .query-result ul { margin: 0; padding-left: 20px; }
+        .available { color: #28a745; font-weight: bold; }
+        .unavailable { color: #dc3545; font-weight: bold; }
+        .employees-container { display: flex; flex-direction: column; gap: 20px; }
+        .employees-section { flex: 1; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Bekleidungsverwaltung THW Jugend Döbeln</h2>
+    
+    <div style="margin-bottom: 20px; padding: 15px; background: #eef6ff; border: 1px solid #b3d7ff; border-radius: 8px;">
+        <strong style="margin-right: 10px;">Datensicherung (Sync):</strong>
+        <button onclick="exportData()" style="background-color: #6c757d;">Backup exportieren</button>
+        <input type="file" id="importFile" style="display:none" onchange="importData(event)">
+        <button onclick="document.getElementById('importFile').click()" style="background-color: #17a2b8;">Backup importieren</button>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('lager', event)">Lagerbestand</button>
+        <button class="tab-btn" onclick="switchTab('verwalten', event)">Lagerbestand verwalten</button>
+        <button class="tab-btn" onclick="switchTab('junghelfer', event)">Junghelfer</button>
+        <button class="tab-btn" onclick="switchTab('ausleihe', event)">Ausgabe, Rückgabe & Umtausch</button>
+        <button class="tab-btn" onclick="switchTab('abfrage', event)">Kleiderabfrage</button>
+    </div>
+
+    <div id="lager" class="tab-content active">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Aktueller Lagerbestand</h3>
+            <button onclick="printInventory()" style="background-color: #6c757d;">🖨️ Komplettes Lager drucken</button>
+        </div>
+        
+        <div class="inventory-tabs">
+            <button class="inventory-tab-btn active" onclick="showInventoryType('Jacke MEA', event)">Jacke MEA</button>
+            <button class="inventory-tab-btn" onclick="showInventoryType('Jacke Fleece', event)">Jacke Fleece</button>
+            <button class="inventory-tab-btn" onclick="showInventoryType('Hose MEA', event)">Hose MEA</button>
+            <button class="inventory-tab-btn" onclick="showInventoryType('Hoodie', event)">Hoodie</button>
+            <button class="inventory-tab-btn" onclick="showInventoryType('Schuhe', event)">Schuhe</button>
+            <button class="inventory-tab-btn" onclick="showInventoryType('Helm', event)">Helm</button>
+            <button class="inventory-tab-btn" onclick="showInventoryType('Handschuhe', event)">Handschuhe</button>
+            <button class="inventory-tab-btn" onclick="showInventoryType('T-Shirt', event)">T-Shirt</button>
+        </div>
+
+        <table id="inventoryTable">
+            <thead><tr><th>Artikeltyp</th><th>Größe</th><th>Gesamtbestand</th><th>Verfügbar</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div id="verwalten" class="tab-content">
+        <h3>Lagerbestand verwalten</h3>
+        <div class="grid-2">
+            <div class="card add-card">
+                <h3 style="color: #28a745; margin-top: 0;">Einzel-Artikel einbuchen</h3>
+                <div class="form-group">
+                    <label>Artikeltyp</label>
+                    <select id="itemType" onchange="toggleHandschuheArt('itemType', 'handschuheArtGroup')">
+                        <option value="Jacke MEA">Jacke MEA</option>
+                        <option value="Jacke Fleece">Jacke Fleece</option>
+                        <option value="Hose MEA">Hose MEA</option>
+                        <option value="Hoodie">Hoodie</option>
+                        <option value="Schuhe">Schuhe</option>
+                        <option value="Helm">Helm</option>
+                        <option value="Handschuhe">Handschuhe</option>
+                        <option value="T-Shirt">T-Shirt</option>
+                    </select>
+                </div>
+                <div class="form-group" id="handschuheArtGroup" style="display:none;">
+                    <label>Art der Handschuhe</label>
+                    <input type="text" id="itemSubType" placeholder="z.B. Leder, Arbeit, Jugend...">
+                </div>
+                <div class="form-group">
+                    <label>Größe</label>
+                    <input type="text" id="itemSize" placeholder="z.B. L, 42...">
+                </div>
+                <div class="form-group">
+                    <label>Anzahl</label>
+                    <input type="number" id="itemQuantity" value="1" min="0">
+                </div>
+                <button onclick="addInventory()" style="width: 100%; background-color: #28a745;">Bestand hinzufügen</button>
+            </div>
+            
+            <div class="card remove-card">
+                <h3 style="color: #dc3545; margin-top: 0;">Artikel ausbuchen</h3>
+                <div class="form-group">
+                    <label>Artikeltyp</label>
+                    <select id="removeItemType" onchange="updateRemoveItemSizes()">
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Größe</label>
+                    <select id="removeItemSize" onchange="updateRemoveItemQuantity()"></select>
+                </div>
+                <div class="form-group">
+                    <label>Anzahl zum Ausbuchen</label>
+                    <select id="removeItemQuantity"></select>
+                </div>
+                <button onclick="removeInventory()" style="width: 100%; background-color: #dc3545;">Ausbuchen</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="junghelfer" class="tab-content">
+        <h3>Junghelfer</h3>
+        <div class="employees-container">
+            <div class="employees-section">
+                <h3>Junghelfer Liste</h3>
+                <div class="filter-bar" style="justify-content: space-between;">
+                    <input type="text" id="searchEmpName" onkeyup="renderEmployees()" placeholder="Nach Namen suchen..." style="width: auto; flex: 1; margin-right: 10px;">
+                    <button onclick="printJunghelfer()" style="background-color: #6c757d;">🖨️ Alle Ausleihen drucken</button>
+                </div>
+                <ul class="emp-list" id="employeeList"></ul>
+            </div>
+            <div class="card employees-section">
+                <h3>Neuen Junghelfer anlegen</h3>
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="empName" placeholder="Max Mustermann">
+                </div>
+                <button onclick="addEmployee()">Junghelfer hinzufügen</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ausleihe" class="tab-content">
+        <div class="card full-width bulk-card">
+            <h3 style="color: #17a2b8; margin-top: 0;">Neueinkleidung (Komplettausstattung ausgeben)</h3>
+            <p style="margin-top: 0; font-size: 14px; color: #555;">Wähle einen Junghelfer und die gewünschten Größen. Felder, die auf "-- Überspringen --" stehen, werden ignoriert.</p>
+            <div class="form-group">
+                <label>Junghelfer</label>
+                <select id="bulkIssueEmpSelect"></select>
+            </div>
+            
+            <div class="grid-4" style="margin-bottom: 15px;">
+                <div class="form-group"><label>Jacke MEA</label><select id="bulkIssue_JackeMEA"></select></div>
+                <div class="form-group"><label>Hose MEA</label><select id="bulkIssue_HoseMEA"></select></div>
+                <div class="form-group"><label>T-Shirt</label><select id="bulkIssue_TShirt"></select></div>
+                <div class="form-group"><label>Schuhe</label><select id="bulkIssue_Schuhe"></select></div>
+                <div class="form-group"><label>Helm</label><select id="bulkIssue_Helm"></select></div>
+                <div class="form-group"><label>Handschuhe</label><select id="bulkIssue_Handschuhe"></select></div>
+                <div class="form-group"><label>Jacke Fleece</label><select id="bulkIssue_JackeFleece"></select></div>
+                <div class="form-group"><label>Hoodie</label><select id="bulkIssue_Hoodie"></select></div>
+            </div>
+            <button onclick="issueBulkClothing()" style="width: 100%; background-color: #17a2b8;">Alle gewählten Artikel auf einmal ausgeben</button>
+        </div>
+
+        <div class="grid-2">
+            <div class="card borrow-card">
+                <h3 style="color: #28a745; margin-top: 0;">Einzel-Ausgabe Bekleidung</h3>
+                <div class="form-group"><label>Junghelfer</label><select id="borrowEmpSelect"></select></div>
+                <div class="form-group"><label>Kleidungsart</label><select id="borrowTypeSelect" onchange="updateBorrowSizes()"></select></div>
+                <div class="form-group"><label>Größe</label><select id="borrowSizeSelect"></select></div>
+                <div class="form-group"><label>Anzahl</label><input type="number" id="borrowQuantity" value="1" min="1"></div>
+                <button onclick="borrowItem()" style="width: 100%; background-color: #28a745;">Ausgeben</button>
+            </div>
+            <div class="card return-card">
+                <h3 style="color: #dc3545; margin-top: 0;">Rückgabe Bekleidung</h3>
+                <div class="form-group"><label>Junghelfer</label><select id="returnEmpSelect" onchange="updateReturnTypes()"></select></div>
+                <div class="form-group"><label>Kleidungsart</label><select id="returnTypeSelect" onchange="updateReturnSizes()"></select></div>
+                <div class="form-group"><label>Größe</label><select id="returnSizeSelect"></select></div>
+                <div class="form-group"><label>Anzahl</label><input type="number" id="returnQuantity" value="1" min="1"></div>
+                <button onclick="returnItem()" style="width: 100%; background-color: #dc3545;">Zurückgeben</button>
+            </div>
+            <div class="card full-width" style="border-color: #007bff; border-left: 5px solid #007bff;">
+                <h3 style="color: #0056b3; margin-top: 0;">Ausrüstung umtauschen</h3>
+                <div class="grid-5">
+                    <div class="form-group"><label>Junghelfer</label><select id="exchangeEmpSelect" onchange="updateExchangeTypes()"></select></div>
+                    <div class="form-group"><label>Kleidungsart</label><select id="exchangeTypeSelect" onchange="updateExchangeSizes()"></select></div>
+                    <div class="form-group"><label>Alte Größe</label><select id="exchangeOldSizeSelect"></select></div>
+                    <div class="form-group"><label>Neue Größe</label><select id="exchangeNewSizeSelect"></select></div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;"><button onclick="exchangeItem()" style="background-color: #28a745; width: 100%;">Umtauschen</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="abfrage" class="tab-content">
+        <h3>Kleiderabfrage</h3>
+        <div class="card query-card">
+            <h3 style="color: #0056b3; margin-top: 0;">Verfügbarkeit prüfen</h3>
+            <div class="grid-3">
+                <div class="form-group"><label>Jackengröße</label><input type="text" id="queryJacketSize" onkeypress="handleQueryKeypress(event, 'jacket')"></div>
+                <div class="form-group"><label>Hosengröße</label><input type="text" id="queryPantsSize" onkeypress="handleQueryKeypress(event, 'pants')"></div>
+                <div class="form-group"><label>Schuhgröße</label><input type="text" id="queryShoeSize" onkeypress="handleQueryKeypress(event, 'shoe')"></div>
+            </div>
+            <button onclick="queryAvailability()" style="background-color: #0056b3;">Verfügbarkeit prüfen</button>
+            <div id="queryResult" class="query-result">
+                <h4 id="queryResultTitle"></h4>
+                <ul id="queryResultList"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let inventory = JSON.parse(localStorage.getItem('inventory')) || [];
+    let employees = JSON.parse(localStorage.getItem('employees')) || [];
+    let currentInventoryType = 'Jacke MEA';
+    
+    employees.sort((a, b) => a.name.localeCompare(b.name));
+
+    const clothingOrder = {'Jacke MEA': 1, 'Jacke Fleece': 2, 'Hose MEA': 3, 'T-Shirt': 4, 'Schuhe': 5, 'Helm': 6, 'Handschuhe': 7, 'Hoodie': 8};
+    const standardTypes = ['Jacke MEA', 'Jacke Fleece', 'Hose MEA', 'Hoodie', 'Schuhe', 'Helm', 'Handschuhe', 'T-Shirt'];
+
+    function sortSizes(sizes, itemType) {
+        if (itemType === 'Hoodie') {
+            const hookieOrder = { '2XS': 1, 'XS': 2, 'M': 3, 'S': 4, 'L': 5, 'XL': 6 };
+            return sizes.sort((a, b) => (hookieOrder[a] || 999) - (hookieOrder[b] || 999) || a.localeCompare(b));
+        }
+        const textOrder = { 'XS': 1, 'S': 2, 'M': 3, 'L': 4, 'XL': 5, 'XXL': 6, 'XXXL': 7 };
+        return sizes.sort((a, b) => {
+            const oA = textOrder[a] || 999, oB = textOrder[b] || 999;
+            if (oA !== 999 && oB !== 999) return oA - oB;
+            const numA = parseInt(a), numB = parseInt(b);
+            return (!isNaN(numA) && !isNaN(numB)) ? numA - numB : a.localeCompare(b);
+        });
+    }
+
+    function exportData() {
+        const data = { inventory: inventory, employees: employees };
+        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'backup.json';
+        a.click();
+    }
+
+    function importData(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                inventory = data.inventory || [];
+                employees = data.employees || [];
+                employees.sort((a, b) => a.name.localeCompare(b.name));
+                saveData();
+                updateDynamicDropdowns();
+                renderInventory();
+                renderEmployees();
+                renderBorrowReturnOptions();
+                alert('Daten erfolgreich geladen!');
+            } catch (err) {
+                alert('Fehler beim Laden der Datei: Ungültiges Format.');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function switchTab(tabId, event) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        if(event.target) event.target.classList.add('active');
+        
+        if (tabId === 'lager') renderInventory();
+        if (tabId === 'verwalten' || tabId === 'ausleihe') updateDynamicDropdowns();
+        renderEmployees();
+        renderBorrowReturnOptions();
+    }
+
+    function showInventoryType(type, event) {
+        currentInventoryType = type;
+        document.querySelectorAll('.inventory-tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        renderInventory();
+    }
+    
+    function toggleHandschuheArt(selectId, groupID) {
+        const type = document.getElementById(selectId).value;
+        document.getElementById(groupID).style.display = type === 'Handschuhe' ? 'block' : 'none';
+    }
+
+    function updateDynamicDropdowns() {
+        const invTypes = inventory.map(i => i.type);
+        const allTypes = [...new Set([...standardTypes, ...invTypes])];
+        const optionsHtml = allTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+
+        const rIt = document.getElementById('removeItemType');
+        const bTs = document.getElementById('borrowTypeSelect');
+        const currentRIt = rIt.value, currentBTs = bTs.value;
+        
+        rIt.innerHTML = '<option value="">-- Artikeltyp --</option>' + optionsHtml;
+        if(allTypes.includes(currentRIt)) rIt.value = currentRIt;
+        
+        bTs.innerHTML = '<option value="">-- Artikeltyp --</option>' + optionsHtml;
+        if(allTypes.includes(currentBTs)) bTs.value = currentBTs;
+    }
+
+    function updateBulkIssueDropdowns() {
+        const typesMap = {
+            'JackeMEA': 'Jacke MEA', 'HoseMEA': 'Hose MEA', 'TShirt': 'T-Shirt', 
+            'Schuhe': 'Schuhe', 'Helm': 'Helm', 'JackeFleece': 'Jacke Fleece', 'Hoodie': 'Hoodie'
+        };
+        
+        for (const [idSuffix, actualType] of Object.entries(typesMap)) {
+            const select = document.getElementById('bulkIssue_' + idSuffix);
+            if(!select) continue;
+            select.innerHTML = '<option value="">-- Überspringen --</option>';
+            const available = inventory.filter(i => i.type === actualType && i.available > 0);
+            sortSizes(available.map(i=>i.size), actualType).forEach(size => {
+                const item = available.find(i => i.size === size);
+                select.innerHTML += `<option value="${item.id}">Größe ${size} (${item.available} verfügbar)</option>`;
+            });
+        }
+        
+        const hanSel = document.getElementById('bulkIssue_Handschuhe');
+        if(hanSel) {
+            hanSel.innerHTML = '<option value="">-- Überspringen --</option>';
+            inventory.filter(i => i.type.startsWith('Handschuhe') && i.available > 0).forEach(item => {
+                hanSel.innerHTML += `<option value="${item.id}">${item.type} - Gr. ${item.size} (${item.available} verfügbar)</option>`;
+            });
+        }
+    }
+
+    function issueBulkClothing() {
+        const eId = document.getElementById('bulkIssueEmpSelect').value;
+        if(!eId) return alert('Bitte zuerst einen Junghelfer auswählen!');
+        const emp = employees.find(e => e.id === eId);
+        if(!emp) return;
+
+        const idsToIssue = [
+            'bulkIssue_JackeMEA', 'bulkIssue_HoseMEA', 'bulkIssue_TShirt', 
+            'bulkIssue_Schuhe', 'bulkIssue_Helm', 'bulkIssue_Handschuhe',
+            'bulkIssue_JackeFleece', 'bulkIssue_Hoodie'
+        ].map(id => document.getElementById(id).value).filter(val => val !== "");
+
+        if(idsToIssue.length === 0) return alert('Bitte bei mindestens einem Kleidungsstück eine Größe auswählen.');
+
+        let count = 0;
+        idsToIssue.forEach(invId => {
+            const item = inventory.find(i => i.id === invId);
+            if(item && item.available > 0) {
+                item.available -= 1;
+                let b = emp.borrowed.find(x => x.invId === item.id);
+                if (b) b.quantity += 1; 
+                else emp.borrowed.push({ invId: item.id, type: item.type, size: item.size, quantity: 1 });
+                count++;
+            }
+        });
+
+        saveData(); 
+        renderInventory(); 
+        renderEmployees(); 
+        renderBorrowReturnOptions();
+        
+        document.querySelectorAll('[id^="bulkIssue_"]').forEach(sel => sel.value = "");
+        alert(`${count} Artikel erfolgreich an ${emp.name} ausgegeben!`);
+    }
+
+    function addInventory() {
+        let type = document.getElementById('itemType').value;
+        if(type === 'Handschuhe') {
+            const sub = document.getElementById('itemSubType').value.trim();
+            if(sub) type = `Handschuhe (${sub})`;
+        }
+
+        const size = document.getElementById('itemSize').value.trim();
+        const qty = parseInt(document.getElementById('itemQuantity').value);
+        if (!size || isNaN(qty) || qty < 0) return alert('Fehlerhafte Eingabe.');
+        
+        let existing = inventory.find(item => item.type === type && item.size === size);
+        if (existing) { existing.total += qty; existing.available += qty; }
+        else { inventory.push({ id: Date.now().toString(), type: type, size: size, total: qty, available: qty }); }
+        
+        document.getElementById('itemSize').value = '';
+        document.getElementById('itemSubType').value = '';
+        saveData(); updateDynamicDropdowns(); renderInventory(); renderBorrowReturnOptions(); alert('Bestand aktualisiert!');
+    }
+
+    function removeInventory() {
+        const type = document.getElementById('removeItemType').value;
+        const size = document.getElementById('removeItemSize').value;
+        const qty = parseInt(document.getElementById('removeItemQuantity').value);
+        const item = inventory.find(i => i.type === type && i.size === size);
+        if (!item || item.available < qty) return alert('Nicht verfügbar.');
+        if (confirm(`Wirklich ${qty}x ${type} (Gr. ${size}) ausbuchen?`)) {
+            item.total -= qty; item.available -= qty;
+            if (item.total <= 0) inventory = inventory.filter(i => i.id !== item.id);
+            saveData(); updateDynamicDropdowns(); renderInventory(); renderBorrowReturnOptions();
+            document.getElementById('removeItemSize').innerHTML = '';
+            document.getElementById('removeItemQuantity').innerHTML = '';
+        }
+    }
+
+    function updateRemoveItemSizes() {
+        const type = document.getElementById('removeItemType').value, sS = document.getElementById('removeItemSize');
+        sS.innerHTML = '<option value="">-- Größe wählen --</option>';
+        sortSizes(inventory.filter(i => i.type === type && i.available > 0).map(i => i.size), type).forEach(s => sS.innerHTML += `<option value="${s}">${s}</option>`);
+    }
+
+    function updateRemoveItemQuantity() {
+        const type = document.getElementById('removeItemType').value, size = document.getElementById('removeItemSize').value, qS = document.getElementById('removeItemQuantity');
+        qS.innerHTML = '<option value="">-- Anzahl wählen --</option>';
+        const item = inventory.find(i => i.type === type && i.size === size);
+        if (item) for (let i = 1; i <= item.available; i++) qS.innerHTML += `<option value="${i}">${i}</option>`;
+    }
+
+    function renderInventory() {
+        const tbody = document.querySelector('#inventoryTable tbody'); tbody.innerHTML = '';
+        
+        let filteredInv = inventory.filter(i => {
+            if (currentInventoryType === 'Handschuhe') return i.type.startsWith('Handschuhe');
+            return i.type === currentInventoryType;
+        });
+
+        filteredInv.sort((a, b) => sortSizes([a.size, b.size], currentInventoryType)[0] === a.size ? -1 : 1).forEach(item => {
+            const rowClass = item.available === 0 ? 'class="out-of-stock-row"' : '';
+            tbody.innerHTML += `<tr ${rowClass}><td>${item.type}</td><td>${item.size}</td><td>${item.total}</td><td><strong>${item.available}</strong></td></tr>`;
+        });
+    }
+
+    function addEmployee() {
+        const name = document.getElementById('empName').value.trim();
+        if (!name) return alert('Namen eingeben.');
+        employees.push({ id: Date.now().toString(), name: name, borrowed: [] });
+        employees.sort((a, b) => a.name.localeCompare(b.name));
+        document.getElementById('empName').value = '';
+        saveData(); renderEmployees(); renderBorrowReturnOptions(); alert('Junghelfer hinzugefügt!');
+    }
+
+    function deleteEmployee(id, event) {
+        if(event) event.stopPropagation();
+        const emp = employees.find(e => e.id === id);
+        if (emp.borrowed.length > 0) return alert('Erst alles zurückgeben!');
+        if (confirm('Löschen?')) { employees = employees.filter(e => e.id !== id); saveData(); renderEmployees(); renderBorrowReturnOptions(); }
+    }
+
+    function renderEmployees() {
+        employees.sort((a, b) => a.name.localeCompare(b.name));
+
+        const list = document.getElementById('employeeList');
+        const term = document.getElementById('searchEmpName').value.toLowerCase();
+        list.innerHTML = '';
+        employees.filter(e => e.name.toLowerCase().includes(term)).forEach(emp => {
+            const li = document.createElement('li');
+            li.innerHTML = `<div class="emp-header"><span><strong>${emp.name}</strong></span><div><button class="btn-secondary" onclick="printSingleJunghelfer('${emp.id}', event)">🖨️ Drucken</button><button class="btn-danger" onclick="deleteEmployee('${emp.id}', event)">Löschen</button></div></div><div class="emp-details"></div>`;
+            li.onclick = function() { 
+                const d = this.querySelector('.emp-details'); 
+                d.style.display = (d.style.display === 'block') ? 'none' : 'block'; 
+                if(d.style.display === 'block') {
+                    d.innerHTML = emp.borrowed.length ? emp.borrowed.map(b => `<div>${b.quantity}x ${b.type} (Gr. ${b.size})</div>`).join('') : '<em>Keine Ausrüstung.</em>'; 
+                }
+            };
+            list.appendChild(li);
+        });
+    }
+
+    // --- NEUE DRUCK-FUNKTION INKLUSIVE BRIEFKOPF ---
+    function printSingleJunghelfer(id, e) {
+        e.stopPropagation();
+        const emp = employees.find(x => x.id === id);
+        if(!emp) return;
+
+        let printWindow = window.open('', '_blank');
+        let currentDate = new Date().toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'});
+
+        let html = `
+        <!DOCTYPE html>
+        <html lang="de">
+        <head>
+            <meta charset="UTF-8">
+            <title>Ausrüstung - ${emp.name}</title>
+            <style>
+                @page { size: A4; margin: 20mm; }
+                body { 
+                    font-family: Arial, sans-serif; 
+                    font-size: 11pt; 
+                    line-height: 1.5; 
+                    color: #000; 
+                    margin: 0;
+                    position: relative;
+                }
+                
+                /* Das dezente Muster / Wasserzeichen im Hintergrund */
+                body::before {
+                    content: "THW-JUGEND";
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%) rotate(-45deg);
+                    font-size: 8rem;
+                    color: rgba(0, 86, 179, 0.04);
+                    z-index: -1;
+                    white-space: nowrap;
+                    font-weight: bold;
+                    pointer-events: none;
+                }
+                
+                /* Briefkopf Styling */
+                .header-small {
+                    font-size: 8pt;
+                    text-decoration: underline;
+                    color: #555;
+                    margin-bottom: 40px;
+                    margin-top: 40px;
+                }
+                .sender-info {
+                    float: right;
+                    text-align: right;
+                    font-size: 10pt;
+                }
+                .clear { clear: both; }
+                
+                h1 { 
+                    font-size: 16pt; 
+                    margin-top: 40px; 
+                    border-bottom: 2px solid #0056b3; 
+                    padding-bottom: 5px; 
+                    color: #0056b3;
+                }
+                
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th, td { border-bottom: 1px solid #ccc; padding: 10px 5px; text-align: left; }
+                th { background-color: #f8f9fa; font-weight: bold; }
+                
+                .signatures {
+                    margin-top: 80px;
+                    display: flex;
+                    justify-content: space-between;
+                }
+                .sig-line {
+                    border-top: 1px solid #000;
+                    width: 45%;
+                    text-align: center;
+                    padding-top: 5px;
+                    font-size: 9pt;
+                }
+                
+                .date-right { text-align: right; margin-top: 20px; margin-bottom: 20px; }
+            </style>
+        </head>
+        <body>
+            <div class="sender-info">
+                <strong>THW-Jugend Döbeln</strong><br>
+                Ortsjugendleiter<br>
+                Vincent Scholze<br>
+                Tel.: 0170/3362807<br>
+                vincent.scholze@icloud.com<br>
+                Friedrichstraße 17, 04720 Döbeln
+            </div>
+            
+            <div class="header-small">
+                THW-Jugend Döbeln | Friedrichstraße 17 | 04720 Döbeln D
+            </div>
+            
+            <div class="clear"></div>
+            
+            <div class="date-right">
+                Döbeln, den ${currentDate}
+            </div>
+
+            <h1>Ausrüstungsliste: ${emp.name}</h1>
+            
+            <p>Folgende Bekleidungs- und Ausrüstungsgegenstände sind aktuell an den Junghelfer / die Junghelferin ausgegeben:</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Anzahl</th>
+                        <th style="width: 55%;">Artikel</th>
+                        <th style="width: 30%;">Größe</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        if(emp.borrowed.length === 0) {
+            html += `<tr><td colspan="3" style="text-align:center;"><em>Aktuell keine Ausrüstung ausgeliehen.</em></td></tr>`;
+        } else {
+            emp.borrowed.forEach(b => {
+                html += `
+                    <tr>
+                        <td><strong>${b.quantity}x</strong></td>
+                        <td>${b.type}</td>
+                        <td>${b.size}</td>
+                    </tr>
+                `;
+            });
+        }
+        
+        html += `
+                </tbody>
+            </table>
+            
+            <div class="signatures">
+                <div class="sig-line">
+                    Datum, Unterschrift Ortsjugendleiter / Betreuer<br>
+                    (Vincent Scholze / Sarah Richter)
+                </div>
+                <div class="sig-line">
+                    Datum, Unterschrift Junghelfer / Erziehungsberechtigte
+                </div>
+            </div>
+
+            <script>
+                window.onload = function() { 
+                    setTimeout(() => {
+                        window.print(); 
+                        window.close(); 
+                    }, 300);
+                }
+            <\/script>
+        </body>
+        </html>`;
+
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
+    }
+    // ----------------------------------------------
+
+    function renderBorrowReturnOptions() {
+        ['borrowEmpSelect', 'returnEmpSelect', 'exchangeEmpSelect', 'bulkIssueEmpSelect'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.innerHTML = '<option value="">-- Junghelfer --</option>' + employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+        });
+        updateBulkIssueDropdowns();
+    }
+
+    function updateBorrowSizes() {
+        const t = document.getElementById('borrowTypeSelect').value, s = document.getElementById('borrowSizeSelect');
+        s.innerHTML = '<option value="">-- Größe --</option>';
+        inventory.filter(i => i.type === t && i.available > 0).forEach(i => s.innerHTML += `<option value="${i.size}">${i.size} (${i.available} verfügbar)</option>`);
+    }
+
+    function borrowItem() {
+        const eId = document.getElementById('borrowEmpSelect').value;
+        const t = document.getElementById('borrowTypeSelect').value;
+        const s = document.getElementById('borrowSizeSelect').value;
+        const qty = parseInt(document.getElementById('borrowQuantity').value);
+        
+        const emp = employees.find(e => e.id === eId);
+        const item = inventory.find(i => i.type === t && i.size === s);
+        
+        if (!emp || !item || item.available < qty) return alert('Fehler: Bestand nicht ausreichend oder Felder leer.');
+        
+        item.available -= qty;
+        let b = emp.borrowed.find(x => x.invId === item.id);
+        if (b) b.quantity += qty; else emp.borrowed.push({ invId: item.id, type: item.type, size: item.size, quantity: qty });
+        
+        saveData(); renderInventory(); renderEmployees(); renderBorrowReturnOptions(); 
+        document.getElementById('borrowSizeSelect').innerHTML = '';
+        alert('Ausrüstung ausgegeben!');
+    }
+
+    function returnItem() {
+        const eId = document.getElementById('returnEmpSelect').value;
+        const t = document.getElementById('returnTypeSelect').value;
+        const s = document.getElementById('returnSizeSelect').value;
+        const qty = parseInt(document.getElementById('returnQuantity').value);
+        
+        const emp = employees.find(e => e.id === eId);
+        const b = emp?.borrowed.find(x => x.type === t && x.size === s);
+        
+        if (!b || b.quantity < qty) return alert('Fehler bei der Rückgabe.');
+        
+        const item = inventory.find(i => i.id === b.invId);
+        if (item) item.available += qty;
+        
+        b.quantity -= qty;
+        if (b.quantity <= 0) emp.borrowed = emp.borrowed.filter(x => x.invId !== b.invId);
+        
+        saveData(); renderInventory(); renderEmployees(); renderBorrowReturnOptions();
+        document.getElementById('returnTypeSelect').innerHTML = '';
+        document.getElementById('returnSizeSelect').innerHTML = '';
+        alert('Ausrüstung zurückgegeben!');
+    }
+    
+    function exchangeItem() {
+        const emp = employees.find(e => e.id === document.getElementById('exchangeEmpSelect').value);
+        if(!emp) return;
+        const b = emp.borrowed.find(x => x.type === document.getElementById('exchangeTypeSelect').value && x.size === document.getElementById('exchangeOldSizeSelect').value);
+        const ni = inventory.find(i => i.type === b.type && i.size === document.getElementById('exchangeNewSizeSelect').value);
+        
+        if (!b || !ni || ni.available <= 0) return alert('Fehler beim Umtausch.');
+        
+        inventory.find(i => i.id === b.invId).available += 1;
+        b.quantity -= 1; if(b.quantity <= 0) emp.borrowed = emp.borrowed.filter(x => x !== b);
+        
+        ni.available -= 1;
+        let nb = emp.borrowed.find(x => x.invId === ni.id);
+        if(nb) nb.quantity += 1; else emp.borrowed.push({invId: ni.id, type: ni.type, size: ni.size, quantity: 1});
+        
+        saveData(); renderInventory(); renderEmployees(); alert('Umtausch erfolgreich!');
+    }
+
+    function printInventory() { window.print(); }
+    function printJunghelfer() { window.print(); }
+    function saveData() { localStorage.setItem('inventory', JSON.stringify(inventory)); localStorage.setItem('employees', JSON.stringify(employees)); }
+    function handleQueryKeypress(e, t) { if(e.key === 'Enter') queryAvailability(); }
+    
+    function updateReturnTypes() { 
+        const e = employees.find(x => x.id === document.getElementById('returnEmpSelect').value); 
+        document.getElementById('returnTypeSelect').innerHTML = '<option>-- Art --</option>' + [...new Set(e.borrowed.map(b => b.type))].map(t => `<option value="${t}">${t}</option>`).join(''); 
+    }
+    function updateReturnSizes() { 
+        const e = employees.find(x => x.id === document.getElementById('returnEmpSelect').value); 
+        document.getElementById('returnSizeSelect').innerHTML = '<option>-- Größe --</option>' + e.borrowed.filter(b => b.type === document.getElementById('returnTypeSelect').value).map(b => `<option value="${b.size}">${b.size}</option>`).join(''); 
+    }
+    function updateExchangeTypes() { 
+        const e = employees.find(x => x.id === document.getElementById('exchangeEmpSelect').value); 
+        document.getElementById('exchangeTypeSelect').innerHTML = '<option>-- Art --</option>' + [...new Set(e.borrowed.map(b => b.type))].map(t => `<option value="${t}">${t}</option>`).join(''); 
+    }
+    function updateExchangeSizes() {
+        const e = employees.find(x => x.id === document.getElementById('exchangeEmpSelect').value), t = document.getElementById('exchangeTypeSelect').value;
+        document.getElementById('exchangeOldSizeSelect').innerHTML = e.borrowed.filter(b => b.type === t).map(b => `<option value="${b.size}">${b.size}</option>`).join('');
+        document.getElementById('exchangeNewSizeSelect').innerHTML = inventory.filter(i => i.type === t && i.available > 0).map(i => `<option value="${i.size}">${i.size}</option>`).join('');
+    }
+
+    function queryAvailability() {
+        const jacketSize = document.getElementById('queryJacketSize').value.trim();
+        const pantsSize = document.getElementById('queryPantsSize').value.trim();
+        const shoeSize = document.getElementById('queryShoeSize').value.trim();
+        if (!jacketSize && !pantsSize && !shoeSize) return alert('Bitte Größe eingeben.');
+        const results = [];
+        let allAvailable = true;
+        if (jacketSize) {
+            ['Jacke MEA', 'Jacke Fleece', 'T-Shirt'].forEach(t => {
+                const item = inventory.find(i => i.type === t && i.size === jacketSize && i.available > 0);
+                if (item) results.push(`<li><span class="available">✓ ${t} Größe ${jacketSize}</span> (${item.available} verfügbar)</li>`);
+                else { results.push(`<li><span class="unavailable">✗ ${t} Größe ${jacketSize}</span> nicht verfügbar</li>`); allAvailable = false; }
+            });
+        }
+        if (pantsSize) {
+            const p = inventory.find(i => i.type === 'Hose MEA' && i.size === pantsSize && i.available > 0);
+            if (p) results.push(`<li><span class="available">✓ Hose MEA Größe ${pantsSize}</span> (${p.available} verfügbar)</li>`);
+            else { results.push(`<li><span class="unavailable">✗ Hose MEA Größe ${pantsSize}</span> nicht verfügbar</li>`); allAvailable = false; }
+        }
+        if (shoeSize) {
+            const s = inventory.find(i => i.type === 'Schuhe' && i.size === shoeSize && i.available > 0);
+            if (s) results.push(`<li><span class="available">✓ Schuhe Größe ${shoeSize}</span> (${s.available} verfügbar)</li>`);
+            else { results.push(`<li><span class="unavailable">✗ Schuhe Größe ${shoeSize}</span> nicht verfügbar</li>`); allAvailable = false; }
+        }
+        const resultDiv = document.getElementById('queryResult');
+        resultDiv.className = 'query-result ' + (allAvailable ? 'success' : (results.some(r => r.includes('available')) ? 'partial' : 'error'));
+        document.getElementById('queryResultTitle').textContent = allAvailable ? '✓ Alle Artikel verfügbar!' : (results.some(r => r.includes('available')) ? '⚠ Teilweise verfügbar' : '✗ Nicht verfügbar');
+        document.getElementById('queryResultList').innerHTML = results.join('');
+    }
+
+    updateDynamicDropdowns();
+    renderInventory(); 
+    renderEmployees(); 
+    renderBorrowReturnOptions();
+</script>
+</body>
+</html>
