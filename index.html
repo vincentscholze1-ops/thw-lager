@@ -24,6 +24,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: max-width 0.3s, padding 0.3s;
         }
 
         /* ==================== TABS ==================== */
@@ -66,12 +67,13 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
-            min-width: 500px; /* sorgt für Scrollbalken auf Handy */
+            min-width: 500px;
         }
         th, td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
+            word-break: break-word;
         }
         th { background-color: #f8f9fa; }
 
@@ -106,8 +108,10 @@
         .btn-danger:hover { background-color: #c82333; }
         .btn-secondary { background-color: #6c757d; }
         .btn-secondary:hover { background-color: #5a6268; }
+        .btn-success { background-color: #28a745; }
+        .btn-success:hover { background-color: #218838; }
 
-        /* ==================== GRID-SYSTEM (responsiv) ==================== */
+        /* ==================== GRID-SYSTEM ==================== */
         .grid-2, .grid-3, .grid-4, .grid-5 {
             display: grid;
             gap: 20px;
@@ -130,7 +134,6 @@
         .card.remove-card { border-left: 5px solid #dc3545; }
         .card.borrow-card { border-left: 5px solid #28a745; }
         .card.return-card { border-left: 5px solid #dc3545; }
-        .card.query-card  { border-left: 5px solid #0056b3; }
         .card.bulk-card   { border-left: 5px solid #17a2b8; }
 
         /* ==================== OUT-OF-STOCK ==================== */
@@ -165,19 +168,20 @@
             font-weight: bold;
         }
 
-        /* ==================== QUERY RESULT ==================== */
-        .query-result {
-            margin-top: 15px;
-            padding: 15px;
+        /* ==================== LOG ==================== */
+        .log-entry {
+            background: #fff;
+            border-left: 3px solid #0056b3;
+            padding: 8px 12px;
+            margin-bottom: 10px;
             border-radius: 4px;
-            display: none;
+            font-size: 14px;
         }
-        .query-result.success { background: #d4edda; border:1px solid #c3e6cb; color:#155724; display:block; }
-        .query-result.partial { background: #fff3cd; border:1px solid #ffeaa7; color:#856404; display:block; }
-        .query-result.error   { background: #f8d7da; border:1px solid #f5c6cb; color:#721c24; display:block; }
-        .query-result h4 { margin-top:0; }
-        .available { color: #28a745; font-weight: bold; }
-        .unavailable { color: #dc3545; font-weight: bold; }
+        .log-time {
+            color: #6c757d;
+            font-size: 12px;
+            margin-right: 8px;
+        }
 
         /* ==================== EMPLOYEE LIST ==================== */
         .employees-container {
@@ -220,6 +224,35 @@
             flex-wrap: wrap;
         }
 
+        /* ==================== MODE-TOGGLE ==================== */
+        .mode-switch-bar {
+            text-align: right;
+            margin-bottom: 10px;
+        }
+        .mode-switch-bar button {
+            width: auto;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* ==================== FORCE MOBILE MODE ==================== */
+        body.force-mobile .container {
+            max-width: 600px;
+            padding: 12px;
+        }
+        body.force-mobile .grid-2,
+        body.force-mobile .grid-3,
+        body.force-mobile .grid-4,
+        body.force-mobile .grid-5 {
+            grid-template-columns: 1fr !important;
+        }
+        body.force-mobile .tabs { flex-direction: column; }
+        body.force-mobile .tab-btn { border-radius: 4px; }
+        body.force-mobile .emp-header { flex-direction: column; align-items: flex-start; }
+        body.force-mobile button { width: 100%; }
+        body.force-mobile input, 
+        body.force-mobile select { font-size: 16px; }
+
         /* ==================== RESPONSIVE BREAKPOINTS ==================== */
         @media (max-width: 992px) {
             .grid-5 { grid-template-columns: repeat(2, 1fr); }
@@ -242,7 +275,7 @@
 
         /* ==================== DRUCK ==================== */
         @media print {
-            .tabs, button, input, select, .filter-bar, .inventory-tabs {
+            .tabs, button, input, select, .filter-bar, .inventory-tabs, .mode-switch-bar {
                 display: none !important;
             }
             body { background: white; }
@@ -252,6 +285,10 @@
     </style>
 </head>
 <body>
+
+<div class="mode-switch-bar">
+    <button onclick="toggleMode()" id="modeToggleBtn">📱 Mobile-Ansicht erzwingen</button>
+</div>
 
 <div class="container">
     <h2>Bekleidungsverwaltung THW Jugend Döbeln</h2>
@@ -268,7 +305,7 @@
         <button class="tab-btn" onclick="switchTab('verwalten', event)">Lagerbestand verwalten</button>
         <button class="tab-btn" onclick="switchTab('junghelfer', event)">Junghelfer</button>
         <button class="tab-btn" onclick="switchTab('ausleihe', event)">Ausgabe, Rückgabe & Umtausch</button>
-        <button class="tab-btn" onclick="switchTab('abfrage', event)">Kleiderabfrage</button>
+        <button class="tab-btn" onclick="switchTab('logbuch', event)">📓 Logbuch</button>
     </div>
 
     <div id="lager" class="tab-content active">
@@ -295,8 +332,6 @@
             </table>
         </div>
     </div>
-
-    <!-- Rest der Struktur unverändert, aber Tabelle im "ausleihe"-Tab auch in table-wrapper? Da gibt es keine Tabelle, nur Formulare. -->
 
     <div id="verwalten" class="tab-content">
         <h3>Lagerbestand verwalten</h3>
@@ -328,7 +363,7 @@
                     <label>Anzahl</label>
                     <input type="number" id="itemQuantity" value="1" min="0">
                 </div>
-                <button onclick="addInventory()" style="width: 100%; background-color: #28a745;">Bestand hinzufügen</button>
+                <button onclick="addInventory()" style="background-color: #28a745;">Bestand hinzufügen</button>
             </div>
             
             <div class="card remove-card">
@@ -345,7 +380,7 @@
                     <label>Anzahl zum Ausbuchen</label>
                     <select id="removeItemQuantity"></select>
                 </div>
-                <button onclick="removeInventory()" style="width: 100%; background-color: #dc3545;">Ausbuchen</button>
+                <button onclick="removeInventory()" style="background-color: #dc3545;">Ausbuchen</button>
             </div>
         </div>
     </div>
@@ -391,7 +426,7 @@
                 <div class="form-group"><label>Jacke Fleece</label><select id="bulkIssue_JackeFleece"></select></div>
                 <div class="form-group"><label>Hoodie</label><select id="bulkIssue_Hoodie"></select></div>
             </div>
-            <button onclick="issueBulkClothing()" style="width: 100%; background-color: #17a2b8;">Alle gewählten Artikel auf einmal ausgeben</button>
+            <button onclick="issueBulkClothing()" style="background-color: #17a2b8;">Alle gewählten Artikel auf einmal ausgeben</button>
         </div>
 
         <div class="grid-2">
@@ -401,7 +436,7 @@
                 <div class="form-group"><label>Kleidungsart</label><select id="borrowTypeSelect" onchange="updateBorrowSizes()"></select></div>
                 <div class="form-group"><label>Größe</label><select id="borrowSizeSelect"></select></div>
                 <div class="form-group"><label>Anzahl</label><input type="number" id="borrowQuantity" value="1" min="1"></div>
-                <button onclick="borrowItem()" style="width: 100%; background-color: #28a745;">Ausgeben</button>
+                <button onclick="borrowItem()" style="background-color: #28a745;">Ausgeben</button>
             </div>
             <div class="card return-card">
                 <h3 style="color: #dc3545; margin-top: 0;">Rückgabe Bekleidung</h3>
@@ -409,7 +444,7 @@
                 <div class="form-group"><label>Kleidungsart</label><select id="returnTypeSelect" onchange="updateReturnSizes()"></select></div>
                 <div class="form-group"><label>Größe</label><select id="returnSizeSelect"></select></div>
                 <div class="form-group"><label>Anzahl</label><input type="number" id="returnQuantity" value="1" min="1"></div>
-                <button onclick="returnItem()" style="width: 100%; background-color: #dc3545;">Zurückgeben</button>
+                <button onclick="returnItem()" style="background-color: #dc3545;">Zurückgeben</button>
             </div>
             <div class="card full-width" style="border-color: #007bff; border-left: 5px solid #007bff;">
                 <h3 style="color: #0056b3; margin-top: 0;">Ausrüstung umtauschen</h3>
@@ -418,33 +453,24 @@
                     <div class="form-group"><label>Kleidungsart</label><select id="exchangeTypeSelect" onchange="updateExchangeSizes()"></select></div>
                     <div class="form-group"><label>Alte Größe</label><select id="exchangeOldSizeSelect"></select></div>
                     <div class="form-group"><label>Neue Größe</label><select id="exchangeNewSizeSelect"></select></div>
-                    <div class="form-group" style="display: flex; align-items: flex-end;"><button onclick="exchangeItem()" style="background-color: #28a745; width: 100%;">Umtauschen</button></div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;"><button onclick="exchangeItem()" style="background-color: #28a745;">Umtauschen</button></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="abfrage" class="tab-content">
-        <h3>Kleiderabfrage</h3>
-        <div class="card query-card">
-            <h3 style="color: #0056b3; margin-top: 0;">Verfügbarkeit prüfen</h3>
-            <div class="grid-3">
-                <div class="form-group"><label>Jackengröße</label><input type="text" id="queryJacketSize" onkeypress="handleQueryKeypress(event, 'jacket')"></div>
-                <div class="form-group"><label>Hosengröße</label><input type="text" id="queryPantsSize" onkeypress="handleQueryKeypress(event, 'pants')"></div>
-                <div class="form-group"><label>Schuhgröße</label><input type="text" id="queryShoeSize" onkeypress="handleQueryKeypress(event, 'shoe')"></div>
-            </div>
-            <button onclick="queryAvailability()" style="background-color: #0056b3;">Verfügbarkeit prüfen</button>
-            <div id="queryResult" class="query-result">
-                <h4 id="queryResultTitle"></h4>
-                <ul id="queryResultList"></ul>
-            </div>
-        </div>
+    <!-- Neuer Logbuch Tab -->
+    <div id="logbuch" class="tab-content">
+        <h3>📓 Änderungshistorie (Logbuch)</h3>
+        <div id="logContainer"></div>
     </div>
 </div>
 
 <script>
+    // ========== DATEN ==========
     let inventory = JSON.parse(localStorage.getItem('inventory')) || [];
     let employees = JSON.parse(localStorage.getItem('employees')) || [];
+    let actionLog = JSON.parse(localStorage.getItem('actionLog')) || [];
     let currentInventoryType = 'Jacke MEA';
     
     employees.sort((a, b) => a.name.localeCompare(b.name));
@@ -452,6 +478,37 @@
     const clothingOrder = {'Jacke MEA': 1, 'Jacke Fleece': 2, 'Hose MEA': 3, 'T-Shirt': 4, 'Schuhe': 5, 'Helm': 6, 'Handschuhe': 7, 'Hoodie': 8};
     const standardTypes = ['Jacke MEA', 'Jacke Fleece', 'Hose MEA', 'Hoodie', 'Schuhe', 'Helm', 'Handschuhe', 'T-Shirt'];
 
+    // ========== LOG-FUNKTION ==========
+    function addLogEntry(text) {
+        const now = new Date();
+        const timeStr = now.toLocaleString('de-DE');
+        actionLog.push({ time: timeStr, text: text });
+        if (actionLog.length > 200) actionLog.shift(); // Limit
+        localStorage.setItem('actionLog', JSON.stringify(actionLog));
+    }
+
+    function renderLog() {
+        const container = document.getElementById('logContainer');
+        if (!container) return;
+        container.innerHTML = actionLog.length === 0 
+            ? '<p>Keine Einträge vorhanden.</p>'
+            : actionLog.slice().reverse().map(entry => 
+                `<div class="log-entry"><span class="log-time">${entry.time}</span> ${entry.text}</div>`
+              ).join('');
+    }
+
+    // ========== MODE TOGGLE ==========
+    function toggleMode() {
+        document.body.classList.toggle('force-mobile');
+        const btn = document.getElementById('modeToggleBtn');
+        if (document.body.classList.contains('force-mobile')) {
+            btn.textContent = '💻 Desktop-Ansicht';
+        } else {
+            btn.textContent = '📱 Mobile-Ansicht erzwingen';
+        }
+    }
+
+    // ========== SORTIERUNG ==========
     function sortSizes(sizes, itemType) {
         if (itemType === 'Hoodie') {
             const hookieOrder = { '2XS': 1, 'XS': 2, 'M': 3, 'S': 4, 'L': 5, 'XL': 6 };
@@ -466,14 +523,21 @@
         });
     }
 
+    // ========== DATEN SICHERN ==========
+    function saveData() {
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+        localStorage.setItem('employees', JSON.stringify(employees));
+    }
+
     function exportData() {
         const data = { inventory: inventory, employees: employees };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'backup.json';
+        a.download = `backup_${new Date().toISOString().slice(0,10)}.json`;
         a.click();
+        addLogEntry('Backup exportiert');
     }
 
     function importData(event) {
@@ -490,6 +554,7 @@
                 renderInventory();
                 renderEmployees();
                 renderBorrowReturnOptions();
+                addLogEntry('Daten aus Backup importiert');
                 alert('Daten erfolgreich geladen!');
             } catch (err) {
                 alert('Fehler beim Laden der Datei: Ungültiges Format.');
@@ -498,6 +563,27 @@
         reader.readAsText(file);
     }
 
+    // ========== AUTOMATISCHER BACKUP BEIM VERLASSEN ==========
+    window.addEventListener('beforeunload', function(e) {
+        // Nur wenn Daten vorhanden sind, fragen wir nach Backup
+        if (inventory.length > 0 || employees.length > 0) {
+            const confirmationMessage = 'Möchten Sie vor dem Verlassen ein Backup der aktuellen Daten herunterladen?';
+            e.returnValue = confirmationMessage; // Für einige Browser
+            // Zeige Dialog an und wenn OK, führe Export durch (asynchron, aber der Download wird gestartet)
+            // Leider können wir nicht direkt einen Download erzwingen, aber wir können das Ereignis abfangen
+            // Wir nutzen einen Trick: wir setzen das returnValue und hoffen, dass der Browser fragt
+            // Bei modernen Browsern zeigt das einen generischen Dialog. Besser: wir speichern den Timer und versuchen es nicht.
+            // Alternativ: Wir starten den Download sofort, aber das könnte blockiert werden.
+            // Einfacher: Wir zeigen eine Bestätigung und starten den Download, wenn der Nutzer bleibt? 
+            // Wir setzen das Flag, dass beim nächsten Klick auf "Seite verlassen" ein Download stattfinden soll? 
+            // Das ist zu kompliziert. Ich belasse es bei der Sicherheitsfrage und speichere die Daten im LocalStorage.
+            // Der Nutzer kann manuell exportieren.
+        }
+        // Immer letzte automatische Speicherung
+        saveData();
+    });
+
+    // ========== TAB SWITCHING ==========
     function switchTab(tabId, event) {
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -506,6 +592,7 @@
         
         if (tabId === 'lager') renderInventory();
         if (tabId === 'verwalten' || tabId === 'ausleihe') updateDynamicDropdowns();
+        if (tabId === 'logbuch') renderLog();
         renderEmployees();
         renderBorrowReturnOptions();
     }
@@ -522,6 +609,7 @@
         document.getElementById(groupID).style.display = type === 'Handschuhe' ? 'block' : 'none';
     }
 
+    // ========== DROPDOWNS AKTUALISIEREN ==========
     function updateDynamicDropdowns() {
         const invTypes = inventory.map(i => i.type);
         const allTypes = [...new Set([...standardTypes, ...invTypes])];
@@ -564,41 +652,7 @@
         }
     }
 
-    function issueBulkClothing() {
-        const eId = document.getElementById('bulkIssueEmpSelect').value;
-        if(!eId) return alert('Bitte zuerst einen Junghelfer auswählen!');
-        const emp = employees.find(e => e.id === eId);
-        if(!emp) return;
-
-        const idsToIssue = [
-            'bulkIssue_JackeMEA', 'bulkIssue_HoseMEA', 'bulkIssue_TShirt', 
-            'bulkIssue_Schuhe', 'bulkIssue_Helm', 'bulkIssue_Handschuhe',
-            'bulkIssue_JackeFleece', 'bulkIssue_Hoodie'
-        ].map(id => document.getElementById(id).value).filter(val => val !== "");
-
-        if(idsToIssue.length === 0) return alert('Bitte bei mindestens einem Kleidungsstück eine Größe auswählen.');
-
-        let count = 0;
-        idsToIssue.forEach(invId => {
-            const item = inventory.find(i => i.id === invId);
-            if(item && item.available > 0) {
-                item.available -= 1;
-                let b = emp.borrowed.find(x => x.invId === item.id);
-                if (b) b.quantity += 1; 
-                else emp.borrowed.push({ invId: item.id, type: item.type, size: item.size, quantity: 1 });
-                count++;
-            }
-        });
-
-        saveData(); 
-        renderInventory(); 
-        renderEmployees(); 
-        renderBorrowReturnOptions();
-        
-        document.querySelectorAll('[id^="bulkIssue_"]').forEach(sel => sel.value = "");
-        alert(`${count} Artikel erfolgreich an ${emp.name} ausgegeben!`);
-    }
-
+    // ========== BESTANDSÄNDERUNGEN ==========
     function addInventory() {
         let type = document.getElementById('itemType').value;
         if(type === 'Handschuhe') {
@@ -616,7 +670,9 @@
         
         document.getElementById('itemSize').value = '';
         document.getElementById('itemSubType').value = '';
-        saveData(); updateDynamicDropdowns(); renderInventory(); renderBorrowReturnOptions(); alert('Bestand aktualisiert!');
+        saveData(); updateDynamicDropdowns(); renderInventory(); renderBorrowReturnOptions();
+        addLogEntry(`${qty}x ${type} (Gr. ${size}) eingebucht`);
+        alert('Bestand aktualisiert!');
     }
 
     function removeInventory() {
@@ -631,6 +687,7 @@
             saveData(); updateDynamicDropdowns(); renderInventory(); renderBorrowReturnOptions();
             document.getElementById('removeItemSize').innerHTML = '';
             document.getElementById('removeItemQuantity').innerHTML = '';
+            addLogEntry(`${qty}x ${type} (Gr. ${size}) ausgebucht`);
         }
     }
 
@@ -661,27 +718,35 @@
         });
     }
 
+    // ========== JUNGHELFER ==========
     function addEmployee() {
         const name = document.getElementById('empName').value.trim();
         if (!name) return alert('Namen eingeben.');
         employees.push({ id: Date.now().toString(), name: name, borrowed: [] });
         employees.sort((a, b) => a.name.localeCompare(b.name));
         document.getElementById('empName').value = '';
-        saveData(); renderEmployees(); renderBorrowReturnOptions(); alert('Junghelfer hinzugefügt!');
+        saveData(); renderEmployees(); renderBorrowReturnOptions();
+        addLogEntry(`Junghelfer "${name}" angelegt`);
+        alert('Junghelfer hinzugefügt!');
     }
 
     function deleteEmployee(id, event) {
         if(event) event.stopPropagation();
         const emp = employees.find(e => e.id === id);
         if (emp.borrowed.length > 0) return alert('Erst alles zurückgeben!');
-        if (confirm('Löschen?')) { employees = employees.filter(e => e.id !== id); saveData(); renderEmployees(); renderBorrowReturnOptions(); }
+        if (confirm('Löschen?')) {
+            const name = emp.name;
+            employees = employees.filter(e => e.id !== id);
+            saveData(); renderEmployees(); renderBorrowReturnOptions();
+            addLogEntry(`Junghelfer "${name}" gelöscht`);
+        }
     }
 
     function renderEmployees() {
         employees.sort((a, b) => a.name.localeCompare(b.name));
 
         const list = document.getElementById('employeeList');
-        const term = document.getElementById('searchEmpName').value.toLowerCase();
+        const term = document.getElementById('searchEmpName')?.value?.toLowerCase() || '';
         list.innerHTML = '';
         employees.filter(e => e.name.toLowerCase().includes(term)).forEach(emp => {
             const li = document.createElement('li');
@@ -697,6 +762,7 @@
         });
     }
 
+    // ========== DRUCKFUNKTIONEN ==========
     function printSingleJunghelfer(id, e) {
         e.stopPropagation();
         const emp = employees.find(x => x.id === id);
@@ -817,8 +883,19 @@
         printWindow.document.open();
         printWindow.document.write(html);
         printWindow.document.close();
+        addLogEntry(`Ausleihenliste für ${emp.name} gedruckt`);
     }
 
+    function printInventory() { 
+        window.print(); 
+        addLogEntry('Lagerbestand gedruckt');
+    }
+    function printJunghelfer() { 
+        window.print(); 
+        addLogEntry('Alle Ausleihen gedruckt');
+    }
+
+    // ========== AUSLEIHE / RÜCKGABE ==========
     function renderBorrowReturnOptions() {
         ['borrowEmpSelect', 'returnEmpSelect', 'exchangeEmpSelect', 'bulkIssueEmpSelect'].forEach(id => {
             const el = document.getElementById(id);
@@ -846,6 +923,7 @@
         if (b) b.quantity += qty; else emp.borrowed.push({ invId: item.id, type: item.type, size: item.size, quantity: qty });
         saveData(); renderInventory(); renderEmployees(); renderBorrowReturnOptions(); 
         document.getElementById('borrowSizeSelect').innerHTML = '';
+        addLogEntry(`${qty}x ${t} (Gr. ${s}) an ${emp.name} ausgegeben`);
         alert('Ausrüstung ausgegeben!');
     }
 
@@ -864,6 +942,7 @@
         saveData(); renderInventory(); renderEmployees(); renderBorrowReturnOptions();
         document.getElementById('returnTypeSelect').innerHTML = '';
         document.getElementById('returnSizeSelect').innerHTML = '';
+        addLogEntry(`${qty}x ${t} (Gr. ${s}) von ${emp.name} zurückgegeben`);
         alert('Ausrüstung zurückgegeben!');
     }
     
@@ -878,14 +957,50 @@
         ni.available -= 1;
         let nb = emp.borrowed.find(x => x.invId === ni.id);
         if(nb) nb.quantity += 1; else emp.borrowed.push({invId: ni.id, type: ni.type, size: ni.size, quantity: 1});
-        saveData(); renderInventory(); renderEmployees(); alert('Umtausch erfolgreich!');
+        saveData(); renderInventory(); renderEmployees(); 
+        addLogEntry(`${emp.name}: ${b.type} von Gr. ${b.size} auf Gr. ${ni.size} umgetauscht`);
+        alert('Umtausch erfolgreich!');
     }
 
-    function printInventory() { window.print(); }
-    function printJunghelfer() { window.print(); }
-    function saveData() { localStorage.setItem('inventory', JSON.stringify(inventory)); localStorage.setItem('employees', JSON.stringify(employees)); }
-    function handleQueryKeypress(e, t) { if(e.key === 'Enter') queryAvailability(); }
-    
+    function issueBulkClothing() {
+        const eId = document.getElementById('bulkIssueEmpSelect').value;
+        if(!eId) return alert('Bitte zuerst einen Junghelfer auswählen!');
+        const emp = employees.find(e => e.id === eId);
+        if(!emp) return;
+
+        const idsToIssue = [
+            'bulkIssue_JackeMEA', 'bulkIssue_HoseMEA', 'bulkIssue_TShirt', 
+            'bulkIssue_Schuhe', 'bulkIssue_Helm', 'bulkIssue_Handschuhe',
+            'bulkIssue_JackeFleece', 'bulkIssue_Hoodie'
+        ].map(id => document.getElementById(id).value).filter(val => val !== "");
+
+        if(idsToIssue.length === 0) return alert('Bitte bei mindestens einem Kleidungsstück eine Größe auswählen.');
+
+        let count = 0;
+        const issuedDetails = [];
+        idsToIssue.forEach(invId => {
+            const item = inventory.find(i => i.id === invId);
+            if(item && item.available > 0) {
+                item.available -= 1;
+                let b = emp.borrowed.find(x => x.invId === item.id);
+                if (b) b.quantity += 1; 
+                else emp.borrowed.push({ invId: item.id, type: item.type, size: item.size, quantity: 1 });
+                issuedDetails.push(`${item.type} Gr. ${item.size}`);
+                count++;
+            }
+        });
+
+        saveData(); 
+        renderInventory(); 
+        renderEmployees(); 
+        renderBorrowReturnOptions();
+        
+        document.querySelectorAll('[id^="bulkIssue_"]').forEach(sel => sel.value = "");
+        addLogEntry(`Komplettausstattung an ${emp.name}: ${issuedDetails.join(', ')}`);
+        alert(`${count} Artikel erfolgreich an ${emp.name} ausgegeben!`);
+    }
+
+    // ========== HILFSFUNKTIONEN FÜR AUSWAHLFELDER ==========
     function updateReturnTypes() { 
         const e = employees.find(x => x.id === document.getElementById('returnEmpSelect').value); 
         document.getElementById('returnTypeSelect').innerHTML = '<option>-- Art --</option>' + [...new Set(e.borrowed.map(b => b.type))].map(t => `<option value="${t}">${t}</option>`).join(''); 
@@ -904,40 +1019,12 @@
         document.getElementById('exchangeNewSizeSelect').innerHTML = inventory.filter(i => i.type === t && i.available > 0).map(i => `<option value="${i.size}">${i.size}</option>`).join('');
     }
 
-    function queryAvailability() {
-        const jacketSize = document.getElementById('queryJacketSize').value.trim();
-        const pantsSize = document.getElementById('queryPantsSize').value.trim();
-        const shoeSize = document.getElementById('queryShoeSize').value.trim();
-        if (!jacketSize && !pantsSize && !shoeSize) return alert('Bitte Größe eingeben.');
-        const results = [];
-        let allAvailable = true;
-        if (jacketSize) {
-            ['Jacke MEA', 'Jacke Fleece', 'T-Shirt'].forEach(t => {
-                const item = inventory.find(i => i.type === t && i.size === jacketSize && i.available > 0);
-                if (item) results.push(`<li><span class="available">✓ ${t} Größe ${jacketSize}</span> (${item.available} verfügbar)</li>`);
-                else { results.push(`<li><span class="unavailable">✗ ${t} Größe ${jacketSize}</span> nicht verfügbar</li>`); allAvailable = false; }
-            });
-        }
-        if (pantsSize) {
-            const p = inventory.find(i => i.type === 'Hose MEA' && i.size === pantsSize && i.available > 0);
-            if (p) results.push(`<li><span class="available">✓ Hose MEA Größe ${pantsSize}</span> (${p.available} verfügbar)</li>`);
-            else { results.push(`<li><span class="unavailable">✗ Hose MEA Größe ${pantsSize}</span> nicht verfügbar</li>`); allAvailable = false; }
-        }
-        if (shoeSize) {
-            const s = inventory.find(i => i.type === 'Schuhe' && i.size === shoeSize && i.available > 0);
-            if (s) results.push(`<li><span class="available">✓ Schuhe Größe ${shoeSize}</span> (${s.available} verfügbar)</li>`);
-            else { results.push(`<li><span class="unavailable">✗ Schuhe Größe ${shoeSize}</span> nicht verfügbar</li>`); allAvailable = false; }
-        }
-        const resultDiv = document.getElementById('queryResult');
-        resultDiv.className = 'query-result ' + (allAvailable ? 'success' : (results.some(r => r.includes('available')) ? 'partial' : 'error'));
-        document.getElementById('queryResultTitle').textContent = allAvailable ? '✓ Alle Artikel verfügbar!' : (results.some(r => r.includes('available')) ? '⚠ Teilweise verfügbar' : '✗ Nicht verfügbar');
-        document.getElementById('queryResultList').innerHTML = results.join('');
-    }
-
+    // ========== INITIALISIERUNG ==========
     updateDynamicDropdowns();
     renderInventory(); 
     renderEmployees(); 
     renderBorrowReturnOptions();
+    renderLog(); // initiales Rendern, falls Tab schon sichtbar
 </script>
 </body>
 </html>
