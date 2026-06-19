@@ -2,84 +2,253 @@
 <html lang="de">
 <head>
     <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0056b3">
-<link rel="apple-touch-icon" href="icon-192.png">
-
+    <meta name="theme-color" content="#0056b3">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lagerverwaltung</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f9; color: #333; }
-        .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        
-        /* Tabs - Erhöhter Kontrast */
-        .tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 3px solid #0056b3; flex-wrap: wrap; }
-        .tab-btn { background-color: #495057; color: #ffffff; border: none; padding: 12px 20px; font-size: 16px; cursor: pointer; border-radius: 6px 6px 0 0; outline: none; transition: background-color 0.2s; }
+        /* ==================== BASIS ==================== */
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* ==================== TABS ==================== */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #0056b3;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background-color: #495057;
+            color: #ffffff;
+            border: none;
+            padding: 12px 16px;
+            font-size: 15px;
+            cursor: pointer;
+            border-radius: 6px 6px 0 0;
+            outline: none;
+            transition: background-color 0.2s;
+            flex: 1 1 auto;
+            white-space: nowrap;
+        }
         .tab-btn:hover { background-color: #343a40; }
-        .tab-btn.active { background-color: #0056b3; font-weight: bold; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); }
+        .tab-btn.active {
+            background-color: #0056b3;
+            font-weight: bold;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+        }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        /* Tables & Forms */
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        /* ==================== TABELLEN (responsive) ==================== */
+        .table-wrapper {
+            overflow-x: auto;
+            width: 100%;
+            -webkit-overflow-scrolling: touch;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            min-width: 500px; /* sorgt für Scrollbalken auf Handy */
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
         th { background-color: #f8f9fa; }
+
+        /* ==================== FORMULAR ==================== */
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; }
-        button { background-color: #007bff; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-size: 14px; }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
         button:hover { background-color: #0056b3; }
-        
-        /* Buttons */
-        .btn-danger { background-color: #dc3545; padding: 6px 10px; font-size: 12px; }
+        .btn-danger { background-color: #dc3545; }
         .btn-danger:hover { background-color: #c82333; }
-        .btn-secondary { background-color: #6c757d; padding: 6px 10px; font-size: 12px; margin-right: 5px; }
+        .btn-secondary { background-color: #6c757d; }
         .btn-secondary:hover { background-color: #5a6268; }
-        
-        /* Layouts */
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .grid-5 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 20px; }
-        .card { border: 1px solid #ddd; padding: 15px; border-radius: 4px; background: #fafafa; margin-bottom: 20px; }
+
+        /* ==================== GRID-SYSTEM (responsiv) ==================== */
+        .grid-2, .grid-3, .grid-4, .grid-5 {
+            display: grid;
+            gap: 20px;
+        }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+        .grid-5 { grid-template-columns: repeat(5, 1fr); }
         .full-width { grid-column: 1 / -1; }
-        
-        /* Employee Details */
-        .emp-list { list-style: none; padding: 0; }
-        .emp-list li { padding: 10px; background: #fff; border: 1px solid #ddd; margin-bottom: 5px; cursor: pointer; border-radius: 4px; }
-        .emp-list li:hover { background: #f0f8ff; }
-        .emp-header { display: flex; justify-content: space-between; align-items: center; }
-        .emp-details { display: none; margin-top: 10px; padding: 10px; background: #e9ecef; border-radius: 4px; cursor: default; }
 
-        /* Search & Filter bars */
-        .filter-bar { padding: 10px; background: #e9ecef; border-radius: 4px; margin-bottom: 15px; display: flex; gap: 10px; align-items: center; }
+        /* ==================== CARDS ==================== */
+        .card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            background: #fafafa;
+            margin-bottom: 20px;
+        }
+        .card.add-card    { border-left: 5px solid #28a745; }
+        .card.remove-card { border-left: 5px solid #dc3545; }
+        .card.borrow-card { border-left: 5px solid #28a745; }
+        .card.return-card { border-left: 5px solid #dc3545; }
+        .card.query-card  { border-left: 5px solid #0056b3; }
+        .card.bulk-card   { border-left: 5px solid #17a2b8; }
 
-        /* Colors for Cards */
-        .card.add-card { border-color: #28a745; border-left: 5px solid #28a745; }
-        .card.remove-card { border-color: #dc3545; border-left: 5px solid #dc3545; }
-        .card.borrow-card { border-color: #28a745; border-left: 5px solid #28a745; }
-        .card.return-card { border-color: #dc3545; border-left: 5px solid #dc3545; }
-        .card.query-card { border-color: #0056b3; border-left: 5px solid #0056b3; }
-        .card.bulk-card { border-color: #17a2b8; border-left: 5px solid #17a2b8; }
-        
-        .out-of-stock-row { background-color: #ffeef0 !important; color: #dc3545; font-weight: bold; }
-        
-        .inventory-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .inventory-tab-btn { background-color: #e9ecef; color: #333; border: 2px solid #ddd; padding: 10px 15px; font-size: 14px; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        /* ==================== OUT-OF-STOCK ==================== */
+        .out-of-stock-row {
+            background-color: #ffeef0 !important;
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        /* ==================== INVENTORY TABS ==================== */
+        .inventory-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .inventory-tab-btn {
+            background-color: #e9ecef;
+            color: #333;
+            border: 2px solid #ddd;
+            padding: 10px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
         .inventory-tab-btn:hover { background-color: #d9dfe5; }
-        .inventory-tab-btn.active { background-color: #0056b3; color: white; border-color: #0056b3; font-weight: bold; }
+        .inventory-tab-btn.active {
+            background-color: #0056b3;
+            color: white;
+            border-color: #0056b3;
+            font-weight: bold;
+        }
 
-        /* Query Result */
-        .query-result { margin-top: 15px; padding: 15px; border-radius: 4px; display: none; }
-        .query-result.success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; display: block; }
-        .query-result.partial { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; display: block; }
-        .query-result.error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; display: block; }
-        .query-result h4 { margin-top: 0; margin-bottom: 10px; }
-        .query-result ul { margin: 0; padding-left: 20px; }
+        /* ==================== QUERY RESULT ==================== */
+        .query-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .query-result.success { background: #d4edda; border:1px solid #c3e6cb; color:#155724; display:block; }
+        .query-result.partial { background: #fff3cd; border:1px solid #ffeaa7; color:#856404; display:block; }
+        .query-result.error   { background: #f8d7da; border:1px solid #f5c6cb; color:#721c24; display:block; }
+        .query-result h4 { margin-top:0; }
         .available { color: #28a745; font-weight: bold; }
         .unavailable { color: #dc3545; font-weight: bold; }
-        .employees-container { display: flex; flex-direction: column; gap: 20px; }
-        .employees-section { flex: 1; }
+
+        /* ==================== EMPLOYEE LIST ==================== */
+        .employees-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .emp-list { list-style: none; padding: 0; }
+        .emp-list li {
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #ddd;
+            margin-bottom: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .emp-list li:hover { background: #f0f8ff; }
+        .emp-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .emp-details {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+        .filter-bar {
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* ==================== RESPONSIVE BREAKPOINTS ==================== */
+        @media (max-width: 992px) {
+            .grid-5 { grid-template-columns: repeat(2, 1fr); }
+            .grid-3 { grid-template-columns: repeat(2, 1fr); }
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 8px; }
+            .container { padding: 12px; }
+            .grid-2, .grid-3, .grid-4, .grid-5 {
+                grid-template-columns: 1fr !important;
+            }
+            .tabs { flex-direction: column; }
+            .tab-btn { border-radius: 4px; }
+            .emp-header { flex-direction: column; align-items: flex-start; }
+            button { padding: 12px; font-size: 15px; }
+            input, select { font-size: 16px; }
+        }
+
+        /* ==================== DRUCK ==================== */
+        @media print {
+            .tabs, button, input, select, .filter-bar, .inventory-tabs {
+                display: none !important;
+            }
+            body { background: white; }
+            .container { box-shadow: none; border: none; }
+            table { min-width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -103,9 +272,9 @@
     </div>
 
     <div id="lager" class="tab-content active">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <h3>Aktueller Lagerbestand</h3>
-            <button onclick="printInventory()" style="background-color: #6c757d;">🖨️ Komplettes Lager drucken</button>
+            <button onclick="printInventory()" style="background-color: #6c757d; width: auto; padding: 10px 15px;">🖨️ Komplettes Lager drucken</button>
         </div>
         
         <div class="inventory-tabs">
@@ -119,11 +288,15 @@
             <button class="inventory-tab-btn" onclick="showInventoryType('T-Shirt', event)">T-Shirt</button>
         </div>
 
-        <table id="inventoryTable">
-            <thead><tr><th>Artikeltyp</th><th>Größe</th><th>Gesamtbestand</th><th>Verfügbar</th></tr></thead>
-            <tbody></tbody>
-        </table>
+        <div class="table-wrapper">
+            <table id="inventoryTable">
+                <thead><tr><th>Artikeltyp</th><th>Größe</th><th>Gesamtbestand</th><th>Verfügbar</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
+
+    <!-- Rest der Struktur unverändert, aber Tabelle im "ausleihe"-Tab auch in table-wrapper? Da gibt es keine Tabelle, nur Formulare. -->
 
     <div id="verwalten" class="tab-content">
         <h3>Lagerbestand verwalten</h3>
@@ -162,8 +335,7 @@
                 <h3 style="color: #dc3545; margin-top: 0;">Artikel ausbuchen</h3>
                 <div class="form-group">
                     <label>Artikeltyp</label>
-                    <select id="removeItemType" onchange="updateRemoveItemSizes()">
-                    </select>
+                    <select id="removeItemType" onchange="updateRemoveItemSizes()"></select>
                 </div>
                 <div class="form-group">
                     <label>Größe</label>
@@ -185,7 +357,7 @@
                 <h3>Junghelfer Liste</h3>
                 <div class="filter-bar" style="justify-content: space-between;">
                     <input type="text" id="searchEmpName" onkeyup="renderEmployees()" placeholder="Nach Namen suchen..." style="width: auto; flex: 1; margin-right: 10px;">
-                    <button onclick="printJunghelfer()" style="background-color: #6c757d;">🖨️ Alle Ausleihen drucken</button>
+                    <button onclick="printJunghelfer()" style="background-color: #6c757d; width: auto;">🖨️ Alle Ausleihen drucken</button>
                 </div>
                 <ul class="emp-list" id="employeeList"></ul>
             </div>
@@ -525,7 +697,6 @@
         });
     }
 
-    // --- NEUE DRUCK-FUNKTION INKLUSIVE BRIEFKOPF ---
     function printSingleJunghelfer(id, e) {
         e.stopPropagation();
         const emp = employees.find(x => x.id === id);
@@ -550,8 +721,6 @@
                     margin: 0;
                     position: relative;
                 }
-                
-                /* Das dezente Muster / Wasserzeichen im Hintergrund */
                 body::before {
                     content: "THW-JUGEND";
                     position: fixed;
@@ -565,8 +734,6 @@
                     font-weight: bold;
                     pointer-events: none;
                 }
-                
-                /* Briefkopf Styling */
                 .header-small {
                     font-size: 8pt;
                     text-decoration: underline;
@@ -580,7 +747,6 @@
                     font-size: 10pt;
                 }
                 .clear { clear: both; }
-                
                 h1 { 
                     font-size: 16pt; 
                     margin-top: 40px; 
@@ -588,11 +754,9 @@
                     padding-bottom: 5px; 
                     color: #0056b3;
                 }
-                
                 table { width: 100%; border-collapse: collapse; margin-top: 20px; }
                 th, td { border-bottom: 1px solid #ccc; padding: 10px 5px; text-align: left; }
                 th { background-color: #f8f9fa; font-weight: bold; }
-                
                 .signatures {
                     margin-top: 80px;
                     display: flex;
@@ -605,7 +769,6 @@
                     padding-top: 5px;
                     font-size: 9pt;
                 }
-                
                 .date-right { text-align: right; margin-top: 20px; margin-bottom: 20px; }
             </style>
         </head>
@@ -618,67 +781,35 @@
                 vincent.scholze@icloud.com<br>
                 Friedrichstraße 17, 04720 Döbeln
             </div>
-            
             <div class="header-small">
                 THW-Jugend Döbeln | Friedrichstraße 17 | 04720 Döbeln D
             </div>
-            
             <div class="clear"></div>
-            
             <div class="date-right">
                 Döbeln, den ${currentDate}
             </div>
-
             <h1>Ausrüstungsliste: ${emp.name}</h1>
-            
             <p>Folgende Bekleidungs- und Ausrüstungsgegenstände sind aktuell an den Junghelfer / die Junghelferin ausgegeben:</p>
-            
             <table>
-                <thead>
-                    <tr>
-                        <th style="width: 15%;">Anzahl</th>
-                        <th style="width: 55%;">Artikel</th>
-                        <th style="width: 30%;">Größe</th>
-                    </tr>
-                </thead>
+                <thead><tr><th style="width:15%">Anzahl</th><th style="width:55%">Artikel</th><th style="width:30%">Größe</th></tr></thead>
                 <tbody>
         `;
-        
         if(emp.borrowed.length === 0) {
             html += `<tr><td colspan="3" style="text-align:center;"><em>Aktuell keine Ausrüstung ausgeliehen.</em></td></tr>`;
         } else {
             emp.borrowed.forEach(b => {
-                html += `
-                    <tr>
-                        <td><strong>${b.quantity}x</strong></td>
-                        <td>${b.type}</td>
-                        <td>${b.size}</td>
-                    </tr>
-                `;
+                html += `<tr><td><strong>${b.quantity}x</strong></td><td>${b.type}</td><td>${b.size}</td></tr>`;
             });
         }
-        
         html += `
                 </tbody>
             </table>
-            
             <div class="signatures">
-                <div class="sig-line">
-                    Datum, Unterschrift Ortsjugendleiter / Betreuer<br>
-                    (Vincent Scholze / Sarah Richter)
-                </div>
-                <div class="sig-line">
-                    Datum, Unterschrift Junghelfer / Erziehungsberechtigte
-                </div>
+                <div class="sig-line">Datum, Unterschrift Ortsjugendleiter / Betreuer<br>(Vincent Scholze / Sarah Richter)</div>
+                <div class="sig-line">Datum, Unterschrift Junghelfer / Erziehungsberechtigte</div>
             </div>
-
             <script>
-                window.onload = function() { 
-                    setTimeout(() => {
-                        window.print(); 
-                        window.close(); 
-                    }, 300);
-                }
+                window.onload = function() { setTimeout(() => { window.print(); window.close(); }, 300); }
             <\/script>
         </body>
         </html>`;
@@ -687,7 +818,6 @@
         printWindow.document.write(html);
         printWindow.document.close();
     }
-    // ----------------------------------------------
 
     function renderBorrowReturnOptions() {
         ['borrowEmpSelect', 'returnEmpSelect', 'exchangeEmpSelect', 'bulkIssueEmpSelect'].forEach(id => {
@@ -708,16 +838,12 @@
         const t = document.getElementById('borrowTypeSelect').value;
         const s = document.getElementById('borrowSizeSelect').value;
         const qty = parseInt(document.getElementById('borrowQuantity').value);
-        
         const emp = employees.find(e => e.id === eId);
         const item = inventory.find(i => i.type === t && i.size === s);
-        
         if (!emp || !item || item.available < qty) return alert('Fehler: Bestand nicht ausreichend oder Felder leer.');
-        
         item.available -= qty;
         let b = emp.borrowed.find(x => x.invId === item.id);
         if (b) b.quantity += qty; else emp.borrowed.push({ invId: item.id, type: item.type, size: item.size, quantity: qty });
-        
         saveData(); renderInventory(); renderEmployees(); renderBorrowReturnOptions(); 
         document.getElementById('borrowSizeSelect').innerHTML = '';
         alert('Ausrüstung ausgegeben!');
@@ -728,18 +854,13 @@
         const t = document.getElementById('returnTypeSelect').value;
         const s = document.getElementById('returnSizeSelect').value;
         const qty = parseInt(document.getElementById('returnQuantity').value);
-        
         const emp = employees.find(e => e.id === eId);
         const b = emp?.borrowed.find(x => x.type === t && x.size === s);
-        
         if (!b || b.quantity < qty) return alert('Fehler bei der Rückgabe.');
-        
         const item = inventory.find(i => i.id === b.invId);
         if (item) item.available += qty;
-        
         b.quantity -= qty;
         if (b.quantity <= 0) emp.borrowed = emp.borrowed.filter(x => x.invId !== b.invId);
-        
         saveData(); renderInventory(); renderEmployees(); renderBorrowReturnOptions();
         document.getElementById('returnTypeSelect').innerHTML = '';
         document.getElementById('returnSizeSelect').innerHTML = '';
@@ -751,16 +872,12 @@
         if(!emp) return;
         const b = emp.borrowed.find(x => x.type === document.getElementById('exchangeTypeSelect').value && x.size === document.getElementById('exchangeOldSizeSelect').value);
         const ni = inventory.find(i => i.type === b.type && i.size === document.getElementById('exchangeNewSizeSelect').value);
-        
         if (!b || !ni || ni.available <= 0) return alert('Fehler beim Umtausch.');
-        
         inventory.find(i => i.id === b.invId).available += 1;
         b.quantity -= 1; if(b.quantity <= 0) emp.borrowed = emp.borrowed.filter(x => x !== b);
-        
         ni.available -= 1;
         let nb = emp.borrowed.find(x => x.invId === ni.id);
         if(nb) nb.quantity += 1; else emp.borrowed.push({invId: ni.id, type: ni.type, size: ni.size, quantity: 1});
-        
         saveData(); renderInventory(); renderEmployees(); alert('Umtausch erfolgreich!');
     }
 
