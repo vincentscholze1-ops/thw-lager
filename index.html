@@ -67,7 +67,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
-            min-width: 500px;
+            min-width: 600px;
         }
         th, td {
             padding: 12px;
@@ -110,6 +110,22 @@
         .btn-secondary:hover { background-color: #5a6268; }
         .btn-success { background-color: #28a745; }
         .btn-success:hover { background-color: #218838; }
+        .btn-warning { background-color: #ffc107; color: #333; }
+        .btn-warning:hover { background-color: #e0a800; }
+        .btn-sm {
+            width: auto;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0 4px;
+            color: #007bff;
+        }
+        .btn-icon:hover { color: #0056b3; }
 
         /* ==================== GRID-SYSTEM ==================== */
         .grid-2, .grid-3, .grid-4, .grid-5 {
@@ -212,6 +228,21 @@
             padding: 10px;
             background: #e9ecef;
             border-radius: 4px;
+        }
+        .emp-details .history-section {
+            margin-top: 10px;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+        .emp-details .history-entry {
+            font-size: 13px;
+            padding: 4px 0;
+            border-bottom: 1px dashed #ccc;
+        }
+        .emp-details .history-date {
+            color: #6c757d;
+            margin-right: 10px;
+            font-size: 12px;
         }
         .filter-bar {
             padding: 10px;
@@ -327,7 +358,16 @@
 
         <div class="table-wrapper">
             <table id="inventoryTable">
-                <thead><tr><th>Artikeltyp</th><th>Größe</th><th>Gesamtbestand</th><th>Verfügbar</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Artikeltyp</th>
+                        <th>Größe</th>
+                        <th>Gesamtbestand</th>
+                        <th>Verfügbar</th>
+                        <th>Notiz</th>
+                        <th>Aktion</th>
+                    </tr>
+                </thead>
                 <tbody></tbody>
             </table>
         </div>
@@ -362,6 +402,10 @@
                 <div class="form-group">
                     <label>Anzahl</label>
                     <input type="number" id="itemQuantity" value="1" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Notiz (optional)</label>
+                    <textarea id="itemNote" rows="2" placeholder="z.B. Ist die alte Schnittform, bitte nicht in den Trockner"></textarea>
                 </div>
                 <button onclick="addInventory()" style="background-color: #28a745;">Bestand hinzufügen</button>
             </div>
@@ -459,7 +503,7 @@
         </div>
     </div>
 
-    <!-- Neuer Logbuch Tab -->
+    <!-- Logbuch Tab -->
     <div id="logbuch" class="tab-content">
         <h3>📓 Änderungshistorie (Logbuch)</h3>
         <div id="logContainer"></div>
@@ -471,9 +515,13 @@
     let inventory = JSON.parse(localStorage.getItem('inventory')) || [];
     let employees = JSON.parse(localStorage.getItem('employees')) || [];
     let actionLog = JSON.parse(localStorage.getItem('actionLog')) || [];
+    let borrowHistory = JSON.parse(localStorage.getItem('borrowHistory')) || [];
     let currentInventoryType = 'Jacke MEA';
     
     employees.sort((a, b) => a.name.localeCompare(b.name));
+
+    // Notiz-Feld für bestehende Items nachrüsten
+    inventory.forEach(item => { if (!item.note) item.note = ''; });
 
     const clothingOrder = {'Jacke MEA': 1, 'Jacke Fleece': 2, 'Hose MEA': 3, 'T-Shirt': 4, 'Schuhe': 5, 'Helm': 6, 'Handschuhe': 7, 'Hoodie': 8};
     const standardTypes = ['Jacke MEA', 'Jacke Fleece', 'Hose MEA', 'Hoodie', 'Schuhe', 'Helm', 'Handschuhe', 'T-Shirt'];
@@ -483,7 +531,7 @@
         const now = new Date();
         const timeStr = now.toLocaleString('de-DE');
         actionLog.push({ time: timeStr, text: text });
-        if (actionLog.length > 200) actionLog.shift(); // Limit
+        if (actionLog.length > 200) actionLog.shift();
         localStorage.setItem('actionLog', JSON.stringify(actionLog));
     }
 
@@ -495,6 +543,29 @@
             : actionLog.slice().reverse().map(entry => 
                 `<div class="log-entry"><span class="log-time">${entry.time}</span> ${entry.text}</div>`
               ).join('');
+    }
+
+    // ========== HISTORIE FÜR HELFER ==========
+    function addBorrowHistory(employeeId, itemId, type, size, quantity, action) {
+        const entry = {
+            date: new Date().toISOString(),
+            employeeId: employeeId,
+            itemId: itemId,
+            type: type,
+            size: size,
+            quantity: quantity,
+            action: action // 'borrow' oder 'return'
+        };
+        borrowHistory.push(entry);
+        localStorage.setItem('borrowHistory', JSON.stringify(borrowHistory));
+    }
+
+    function getHistoryForEmployee(empId, yearsBack = 3) {
+        const cutoff = new Date();
+        cutoff.setFullYear(cutoff.getFullYear() - yearsBack);
+        return borrowHistory
+            .filter(e => e.employeeId === empId && new Date(e.date) >= cutoff)
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
     }
 
     // ========== MODE TOGGLE ==========
@@ -530,7 +601,7 @@
     }
 
     function exportData() {
-        const data = { inventory: inventory, employees: employees };
+        const data = { inventory: inventory, employees: employees, borrowHistory: borrowHistory };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -548,8 +619,11 @@
                 const data = JSON.parse(e.target.result);
                 inventory = data.inventory || [];
                 employees = data.employees || [];
+                borrowHistory = data.borrowHistory || [];
                 employees.sort((a, b) => a.name.localeCompare(b.name));
+                inventory.forEach(item => { if (!item.note) item.note = ''; });
                 saveData();
+                localStorage.setItem('borrowHistory', JSON.stringify(borrowHistory));
                 updateDynamicDropdowns();
                 renderInventory();
                 renderEmployees();
@@ -565,21 +639,6 @@
 
     // ========== AUTOMATISCHER BACKUP BEIM VERLASSEN ==========
     window.addEventListener('beforeunload', function(e) {
-        // Nur wenn Daten vorhanden sind, fragen wir nach Backup
-        if (inventory.length > 0 || employees.length > 0) {
-            const confirmationMessage = 'Möchten Sie vor dem Verlassen ein Backup der aktuellen Daten herunterladen?';
-            e.returnValue = confirmationMessage; // Für einige Browser
-            // Zeige Dialog an und wenn OK, führe Export durch (asynchron, aber der Download wird gestartet)
-            // Leider können wir nicht direkt einen Download erzwingen, aber wir können das Ereignis abfangen
-            // Wir nutzen einen Trick: wir setzen das returnValue und hoffen, dass der Browser fragt
-            // Bei modernen Browsern zeigt das einen generischen Dialog. Besser: wir speichern den Timer und versuchen es nicht.
-            // Alternativ: Wir starten den Download sofort, aber das könnte blockiert werden.
-            // Einfacher: Wir zeigen eine Bestätigung und starten den Download, wenn der Nutzer bleibt? 
-            // Wir setzen das Flag, dass beim nächsten Klick auf "Seite verlassen" ein Download stattfinden soll? 
-            // Das ist zu kompliziert. Ich belasse es bei der Sicherheitsfrage und speichere die Daten im LocalStorage.
-            // Der Nutzer kann manuell exportieren.
-        }
-        // Immer letzte automatische Speicherung
         saveData();
     });
 
@@ -662,14 +721,21 @@
 
         const size = document.getElementById('itemSize').value.trim();
         const qty = parseInt(document.getElementById('itemQuantity').value);
+        const note = document.getElementById('itemNote').value.trim();
         if (!size || isNaN(qty) || qty < 0) return alert('Fehlerhafte Eingabe.');
         
         let existing = inventory.find(item => item.type === type && item.size === size);
-        if (existing) { existing.total += qty; existing.available += qty; }
-        else { inventory.push({ id: Date.now().toString(), type: type, size: size, total: qty, available: qty }); }
+        if (existing) { 
+            existing.total += qty; 
+            existing.available += qty;
+            if (note) existing.note = note; // Notiz überschreiben, wenn neue eingegeben
+        } else { 
+            inventory.push({ id: Date.now().toString(), type: type, size: size, total: qty, available: qty, note: note });
+        }
         
         document.getElementById('itemSize').value = '';
         document.getElementById('itemSubType').value = '';
+        document.getElementById('itemNote').value = '';
         saveData(); updateDynamicDropdowns(); renderInventory(); renderBorrowReturnOptions();
         addLogEntry(`${qty}x ${type} (Gr. ${size}) eingebucht`);
         alert('Bestand aktualisiert!');
@@ -704,6 +770,20 @@
         if (item) for (let i = 1; i <= item.available; i++) qS.innerHTML += `<option value="${i}">${i}</option>`;
     }
 
+    // ========== NOTIZ BEARBEITEN ==========
+    function updateItemNote(itemId) {
+        const item = inventory.find(i => i.id === itemId);
+        if (!item) return;
+        const newNote = prompt(`Notiz für ${item.type} (Gr. ${item.size}):`, item.note || '');
+        if (newNote !== null) {
+            item.note = newNote.trim();
+            saveData();
+            renderInventory();
+            addLogEntry(`Notiz für ${item.type} (Gr. ${item.size}) aktualisiert`);
+        }
+    }
+
+    // ========== LAGERBESTAND ANZEIGEN ==========
     function renderInventory() {
         const tbody = document.querySelector('#inventoryTable tbody'); tbody.innerHTML = '';
         
@@ -714,7 +794,16 @@
 
         filteredInv.sort((a, b) => sortSizes([a.size, b.size], currentInventoryType)[0] === a.size ? -1 : 1).forEach(item => {
             const rowClass = item.available === 0 ? 'class="out-of-stock-row"' : '';
-            tbody.innerHTML += `<tr ${rowClass}><td>${item.type}</td><td>${item.size}</td><td>${item.total}</td><td><strong>${item.available}</strong></td></tr>`;
+            tbody.innerHTML += `
+                <tr ${rowClass}>
+                    <td>${item.type}</td>
+                    <td>${item.size}</td>
+                    <td>${item.total}</td>
+                    <td><strong>${item.available}</strong></td>
+                    <td>${item.note || ''}</td>
+                    <td><button class="btn-icon" title="Notiz bearbeiten" onclick="updateItemNote('${item.id}')">✏️</button></td>
+                </tr>
+            `;
         });
     }
 
@@ -750,13 +839,46 @@
         list.innerHTML = '';
         employees.filter(e => e.name.toLowerCase().includes(term)).forEach(emp => {
             const li = document.createElement('li');
-            li.innerHTML = `<div class="emp-header"><span><strong>${emp.name}</strong></span><div><button class="btn-secondary" onclick="printSingleJunghelfer('${emp.id}', event)">🖨️ Drucken</button><button class="btn-danger" onclick="deleteEmployee('${emp.id}', event)">Löschen</button></div></div><div class="emp-details"></div>`;
-            li.onclick = function() { 
-                const d = this.querySelector('.emp-details'); 
-                d.style.display = (d.style.display === 'block') ? 'none' : 'block'; 
-                if(d.style.display === 'block') {
-                    d.innerHTML = emp.borrowed.length ? emp.borrowed.map(b => `<div>${b.quantity}x ${b.type} (Gr. ${b.size})</div>`).join('') : '<em>Keine Ausrüstung.</em>'; 
+            li.innerHTML = `
+                <div class="emp-header">
+                    <span><strong>${emp.name}</strong></span>
+                    <div>
+                        <button class="btn-secondary btn-sm" onclick="printSingleJunghelfer('${emp.id}', event)">🖨️ Drucken</button>
+                        <button class="btn-danger btn-sm" onclick="deleteEmployee('${emp.id}', event)">Löschen</button>
+                    </div>
+                </div>
+                <div class="emp-details"></div>
+            `;
+            li.onclick = function(e) {
+                // verhindert, dass Klick auf Buttons das Umschalten auslöst
+                if (e.target.closest('button')) return;
+                const d = this.querySelector('.emp-details');
+                if (d.style.display === 'block') {
+                    d.style.display = 'none';
+                    return;
                 }
+                d.style.display = 'block';
+                // Aktuelle Ausleihen
+                let html = '<strong>Aktuelle Ausrüstung:</strong><br>';
+                if (emp.borrowed.length) {
+                    html += emp.borrowed.map(b => `<div>${b.quantity}x ${b.type} (Gr. ${b.size})</div>`).join('');
+                } else {
+                    html += '<em>Keine Ausrüstung.</em>';
+                }
+                // Historie der letzten 3 Jahre
+                const history = getHistoryForEmployee(emp.id, 3);
+                html += '<div class="history-section"><strong>Historie (letzte 3 Jahre):</strong><br>';
+                if (history.length) {
+                    history.forEach(h => {
+                        const dateStr = new Date(h.date).toLocaleDateString('de-DE');
+                        const actionText = h.action === 'borrow' ? 'ausgegeben' : 'zurückgegeben';
+                        html += `<div class="history-entry"><span class="history-date">${dateStr}</span> ${h.quantity}x ${h.type} (Gr. ${h.size}) ${actionText}</div>`;
+                    });
+                } else {
+                    html += '<em>Keine Einträge in den letzten 3 Jahren.</em>';
+                }
+                html += '</div>';
+                d.innerHTML = html;
             };
             list.appendChild(li);
         });
@@ -921,6 +1043,8 @@
         item.available -= qty;
         let b = emp.borrowed.find(x => x.invId === item.id);
         if (b) b.quantity += qty; else emp.borrowed.push({ invId: item.id, type: item.type, size: item.size, quantity: qty });
+        // Historie
+        addBorrowHistory(emp.id, item.id, item.type, item.size, qty, 'borrow');
         saveData(); renderInventory(); renderEmployees(); renderBorrowReturnOptions(); 
         document.getElementById('borrowSizeSelect').innerHTML = '';
         addLogEntry(`${qty}x ${t} (Gr. ${s}) an ${emp.name} ausgegeben`);
@@ -939,6 +1063,8 @@
         if (item) item.available += qty;
         b.quantity -= qty;
         if (b.quantity <= 0) emp.borrowed = emp.borrowed.filter(x => x.invId !== b.invId);
+        // Historie
+        addBorrowHistory(emp.id, b.invId, t, s, qty, 'return');
         saveData(); renderInventory(); renderEmployees(); renderBorrowReturnOptions();
         document.getElementById('returnTypeSelect').innerHTML = '';
         document.getElementById('returnSizeSelect').innerHTML = '';
@@ -952,11 +1078,17 @@
         const b = emp.borrowed.find(x => x.type === document.getElementById('exchangeTypeSelect').value && x.size === document.getElementById('exchangeOldSizeSelect').value);
         const ni = inventory.find(i => i.type === b.type && i.size === document.getElementById('exchangeNewSizeSelect').value);
         if (!b || !ni || ni.available <= 0) return alert('Fehler beim Umtausch.');
-        inventory.find(i => i.id === b.invId).available += 1;
-        b.quantity -= 1; if(b.quantity <= 0) emp.borrowed = emp.borrowed.filter(x => x !== b);
+        // Rückgabe der alten
+        const oldItem = inventory.find(i => i.id === b.invId);
+        oldItem.available += 1;
+        b.quantity -= 1; 
+        if(b.quantity <= 0) emp.borrowed = emp.borrowed.filter(x => x !== b);
+        addBorrowHistory(emp.id, oldItem.id, oldItem.type, oldItem.size, 1, 'return');
+        // Ausgabe der neuen
         ni.available -= 1;
         let nb = emp.borrowed.find(x => x.invId === ni.id);
         if(nb) nb.quantity += 1; else emp.borrowed.push({invId: ni.id, type: ni.type, size: ni.size, quantity: 1});
+        addBorrowHistory(emp.id, ni.id, ni.type, ni.size, 1, 'borrow');
         saveData(); renderInventory(); renderEmployees(); 
         addLogEntry(`${emp.name}: ${b.type} von Gr. ${b.size} auf Gr. ${ni.size} umgetauscht`);
         alert('Umtausch erfolgreich!');
@@ -986,6 +1118,7 @@
                 if (b) b.quantity += 1; 
                 else emp.borrowed.push({ invId: item.id, type: item.type, size: item.size, quantity: 1 });
                 issuedDetails.push(`${item.type} Gr. ${item.size}`);
+                addBorrowHistory(emp.id, item.id, item.type, item.size, 1, 'borrow');
                 count++;
             }
         });
@@ -1024,7 +1157,7 @@
     renderInventory(); 
     renderEmployees(); 
     renderBorrowReturnOptions();
-    renderLog(); // initiales Rendern, falls Tab schon sichtbar
+    renderLog(); 
 </script>
 </body>
 </html>
