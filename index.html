@@ -376,6 +376,71 @@
             input, select { font-size: 16px; }
             .top-bar { flex-direction: column; align-items: stretch; }
             .bulk-handschuh-fields { grid-template-columns: 1fr; }
+
+            /* ===== TABELLE → KARTEN-ANSICHT ===== */
+            .table-wrapper {
+                overflow-x: visible;
+            }
+            table {
+                display: block;
+                min-width: 100%;
+                border: none;
+            }
+            thead {
+                display: none;
+            }
+            tbody {
+                display: block;
+            }
+            tr {
+                display: block;
+                margin-bottom: 15px;
+                padding: 15px;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                background: #fff;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+            tr.out-of-stock-row {
+                background-color: #ffeef0 !important;
+                border-color: #dc3545;
+            }
+            td {
+                display: block;
+                padding: 6px 0;
+                border: none;
+                font-size: 14px;
+                line-height: 1.5;
+            }
+            td::before {
+                content: attr(data-label);
+                font-weight: bold;
+                display: inline-block;
+                width: 120px;
+                color: #555;
+            }
+            td:last-child {
+                border-bottom: none;
+            }
+            /* Speziell für die Notiz-Spalte */
+            td[data-label="Notiz"] {
+                word-break: break-word;
+                white-space: normal;
+            }
+            /* Aktion-Button in der Karte */
+            td[data-label="Aktion"] {
+                text-align: right;
+                margin-top: 8px;
+                padding-top: 8px;
+                border-top: 1px dashed #ddd;
+            }
+            td[data-label="Aktion"]::before {
+                display: none;
+            }
+            td[data-label="Aktion"] .btn-icon {
+                font-size: 20px;
+                padding: 4px 8px;
+            }
         }
 
         /* ==================== DRUCK ==================== */
@@ -998,7 +1063,6 @@
             });
         }
 
-        // Handschuhe: Typ- und Größen-Dropdown füllen
         updateHandschuhTypDropdown();
         updateHandschuhGroessen();
     }
@@ -1006,16 +1070,13 @@
     function updateHandschuhTypDropdown() {
         const typSelect = document.getElementById('bulkIssue_HandschuhTyp');
         if (!typSelect) return;
-        // Alle Handschuh-Typen aus dem Inventar extrahieren
         const handschuhe = inventory.filter(i => i.type.startsWith('Handschuhe') && i.available > 0);
         const typSet = new Set();
         handschuhe.forEach(item => {
-            // Extrahiere den Typ aus der Klammer, z.B. "Handschuhe (Leder)" → "Leder"
             const match = item.type.match(/Handschuhe\s*\((.+)\)/);
             if (match) {
                 typSet.add(match[1].trim());
             } else {
-                // Fallback: den gesamten Typ ohne "Handschuhe" nehmen
                 typSet.add(item.type.replace('Handschuhe', '').trim() || 'Standard');
             }
         });
@@ -1024,7 +1085,6 @@
         typArray.forEach(t => {
             typSelect.innerHTML += `<option value="${t}">${t}</option>`;
         });
-        // Wenn nur ein Typ vorhanden, diesen automatisch auswählen?
         if (typArray.length === 1) {
             typSelect.value = typArray[0];
             updateHandschuhGroessen();
@@ -1039,19 +1099,16 @@
         sizeSelect.innerHTML = '<option value="">-- Größe --</option>';
         if (!selectedTyp) return;
 
-        // Finde alle Handschuhe mit diesem Typ
         const matchingItems = inventory.filter(item => {
             if (!item.type.startsWith('Handschuhe')) return false;
             const match = item.type.match(/Handschuhe\s*\((.+)\)/);
             if (match) {
                 return match[1].trim() === selectedTyp && item.available > 0;
             }
-            // Fallback: Vergleich ohne Klammer
             const cleanType = item.type.replace('Handschuhe', '').trim();
             return cleanType === selectedTyp && item.available > 0;
         });
 
-        // Größen sortieren und Optionen hinzufügen
         const sizes = matchingItems.map(i => i.size);
         sortSizes(sizes, 'Handschuhe').forEach(size => {
             const item = matchingItems.find(i => i.size === size);
@@ -1142,10 +1199,12 @@
     }
 
     // ======================================================================
-    // 15. LAGERBESTAND ANZEIGEN
+    // 15. LAGERBESTAND ANZEIGEN – mit data-label für mobile Kartenansicht
     // ======================================================================
     function renderInventory() {
-        const tbody = document.querySelector('#inventoryTable tbody'); tbody.innerHTML = '';
+        const tbody = document.querySelector('#inventoryTable tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
         
         let filteredInv = inventory.filter(i => {
             if (currentInventoryType === 'Handschuhe') return i.type.startsWith('Handschuhe');
@@ -1153,15 +1212,15 @@
         });
 
         filteredInv.sort((a, b) => sortSizes([a.size, b.size], currentInventoryType)[0] === a.size ? -1 : 1).forEach(item => {
-            const rowClass = item.available === 0 ? 'class="out-of-stock-row"' : '';
+            const rowClass = item.available === 0 ? 'out-of-stock-row' : '';
             tbody.innerHTML += `
-                <tr ${rowClass}>
-                    <td>${item.type}</td>
-                    <td>${item.size}</td>
-                    <td>${item.total}</td>
-                    <td><strong>${item.available}</strong></td>
-                    <td>${item.note || ''}</td>
-                    <td><button class="btn-icon" title="Notiz bearbeiten" onclick="updateItemNote('${item.id}')">✏️</button></td>
+                <tr class="${rowClass}">
+                    <td data-label="Artikeltyp">${item.type}</td>
+                    <td data-label="Größe">${item.size}</td>
+                    <td data-label="Gesamtbestand">${item.total}</td>
+                    <td data-label="Verfügbar"><strong>${item.available}</strong></td>
+                    <td data-label="Notiz">${item.note || ''}</td>
+                    <td data-label="Aktion"><button class="btn-icon" title="Notiz bearbeiten" onclick="updateItemNote('${item.id}')">✏️</button></td>
                 </tr>
             `;
         });
@@ -1466,7 +1525,7 @@
     }
 
     // ======================================================================
-    // 19. BULK ISSUE (Komplettausstattung) – angepasst für Handschuh-Typ
+    // 19. BULK ISSUE (Komplettausstattung)
     // ======================================================================
     function issueBulkClothing() {
         const eId = document.getElementById('bulkIssueEmpSelect').value;
@@ -1474,19 +1533,16 @@
         const emp = employees.find(e => e.id === eId);
         if(!emp) return;
 
-        // Normale Artikel (IDs aus den Selects)
         const articleIds = [
             'bulkIssue_JackeMEA', 'bulkIssue_HoseMEA', 'bulkIssue_TShirt',
             'bulkIssue_Schuhe', 'bulkIssue_Helm', 'bulkIssue_JackeFleece', 'bulkIssue_Hoodie'
         ].map(id => document.getElementById(id).value).filter(val => val !== "");
 
-        // Handschuhe: Typ und Größe aus den separaten Selects
         const handschuhTyp = document.getElementById('bulkIssue_HandschuhTyp').value;
         const handschuhGroesse = document.getElementById('bulkIssue_HandschuhGroesse').value;
 
         let handschuhId = null;
         if (handschuhTyp && handschuhGroesse) {
-            // Finde den passenden Inventar-Eintrag
             const matchingItem = inventory.find(item => {
                 if (!item.type.startsWith('Handschuhe')) return false;
                 const match = item.type.match(/Handschuhe\s*\((.+)\)/);
@@ -1528,7 +1584,6 @@
         renderEmployees(); 
         renderBorrowReturnOptions();
         
-        // Alle Selects zurücksetzen (normale auf "-- Überspringen --", Handschuh-Typ/Größe auf leer)
         document.querySelectorAll('[id^="bulkIssue_"]').forEach(sel => {
             if (sel.id === 'bulkIssue_HandschuhTyp') {
                 sel.value = '';
