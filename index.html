@@ -152,6 +152,7 @@
         .card.return-card { border-left: 5px solid #dc3545; }
         .card.bulk-card   { border-left: 5px solid #17a2b8; }
         .card.settings-card { border-left: 5px solid #6f42c1; }
+        .card.exchange-card { border-left: 5px solid #007bff; }
 
         /* ==================== OUT-OF-STOCK ==================== */
         .out-of-stock-row {
@@ -422,12 +423,10 @@
             td:last-child {
                 border-bottom: none;
             }
-            /* Speziell für die Notiz-Spalte */
             td[data-label="Notiz"] {
                 word-break: break-word;
                 white-space: normal;
             }
-            /* Aktion-Button in der Karte */
             td[data-label="Aktion"] {
                 text-align: right;
                 margin-top: 8px;
@@ -505,12 +504,14 @@
 
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('lager', event)">Lagerbestand</button>
-        <button class="tab-btn" onclick="switchTab('verwalten', event)">Lagerbestand verwalten</button>
         <button class="tab-btn" onclick="switchTab('junghelfer', event)">Junghelfer</button>
-        <button class="tab-btn" onclick="switchTab('ausleihe', event)">Ausgabe, Rückgabe & Umtausch</button>
+        <button class="tab-btn" onclick="switchTab('komplett', event)">1. Komplettausgabe</button>
+        <button class="tab-btn" onclick="switchTab('einzel', event)">2. Einzelausgabe / Rückgabe</button>
+        <button class="tab-btn" onclick="switchTab('umtausch', event)">3. Umtausch</button>
         <button class="tab-btn" onclick="switchTab('logbuch', event)">📓 Logbuch</button>
     </div>
 
+    <!-- ==================== LAGERBESTAND (inkl. Einbuchung/Ausbuchung) ==================== -->
     <div id="lager" class="tab-content active">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <h3>Aktueller Lagerbestand</h3>
@@ -543,9 +544,8 @@
                 <tbody></tbody>
             </table>
         </div>
-    </div>
 
-    <div id="verwalten" class="tab-content">
+        <!-- ===== Einbuchung / Ausbuchung direkt im Lager-Tab ===== -->
         <h3>Lagerbestand verwalten</h3>
         <div class="grid-2">
             <div class="card add-card">
@@ -601,6 +601,7 @@
         </div>
     </div>
 
+    <!-- ==================== JUNGHELFER ==================== -->
     <div id="junghelfer" class="tab-content">
         <h3>Junghelfer</h3>
         <div class="employees-container">
@@ -623,7 +624,8 @@
         </div>
     </div>
 
-    <div id="ausleihe" class="tab-content">
+    <!-- ==================== 1. KOMPLETTAUSGABE ==================== -->
+    <div id="komplett" class="tab-content">
         <div class="card full-width bulk-card">
             <h3 style="color: #17a2b8; margin-top: 0;">Neueinkleidung (Komplettausstattung ausgeben)</h3>
             <p style="margin-top: 0; font-size: 14px; color: #555;">Wähle einen Junghelfer und die gewünschten Größen. Felder, die auf "-- Überspringen --" stehen, werden ignoriert.</p>
@@ -664,7 +666,10 @@
 
             <button onclick="issueBulkClothing()" style="background-color: #17a2b8;">Alle gewählten Artikel auf einmal ausgeben</button>
         </div>
+    </div>
 
+    <!-- ==================== 2. EINZELAUSGABE / RÜCKGABE ==================== -->
+    <div id="einzel" class="tab-content">
         <div class="grid-2">
             <div class="card borrow-card">
                 <h3 style="color: #28a745; margin-top: 0;">Einzel-Ausgabe Bekleidung</h3>
@@ -682,20 +687,24 @@
                 <div class="form-group"><label>Anzahl</label><input type="number" id="returnQuantity" value="1" min="1"></div>
                 <button onclick="returnItem()" style="background-color: #dc3545;">Zurückgeben</button>
             </div>
-            <div class="card full-width" style="border-color: #007bff; border-left: 5px solid #007bff;">
-                <h3 style="color: #0056b3; margin-top: 0;">Ausrüstung umtauschen</h3>
-                <div class="grid-5">
-                    <div class="form-group"><label>Junghelfer</label><select id="exchangeEmpSelect" onchange="updateExchangeTypes()"></select></div>
-                    <div class="form-group"><label>Kleidungsart</label><select id="exchangeTypeSelect" onchange="updateExchangeSizes()"></select></div>
-                    <div class="form-group"><label>Alte Größe</label><select id="exchangeOldSizeSelect"></select></div>
-                    <div class="form-group"><label>Neue Größe</label><select id="exchangeNewSizeSelect"></select></div>
-                    <div class="form-group" style="display: flex; align-items: flex-end;"><button onclick="exchangeItem()" style="background-color: #28a745;">Umtauschen</button></div>
-                </div>
+        </div>
+    </div>
+
+    <!-- ==================== 3. UMTAUSCH ==================== -->
+    <div id="umtausch" class="tab-content">
+        <div class="card full-width exchange-card">
+            <h3 style="color: #0056b3; margin-top: 0;">Ausrüstung umtauschen</h3>
+            <div class="grid-5">
+                <div class="form-group"><label>Junghelfer</label><select id="exchangeEmpSelect" onchange="updateExchangeTypes()"></select></div>
+                <div class="form-group"><label>Kleidungsart</label><select id="exchangeTypeSelect" onchange="updateExchangeSizes()"></select></div>
+                <div class="form-group"><label>Alte Größe</label><select id="exchangeOldSizeSelect"></select></div>
+                <div class="form-group"><label>Neue Größe</label><select id="exchangeNewSizeSelect"></select></div>
+                <div class="form-group" style="display: flex; align-items: flex-end;"><button onclick="exchangeItem()" style="background-color: #28a745;">Umtauschen</button></div>
             </div>
         </div>
     </div>
 
-    <!-- Logbuch Tab -->
+    <!-- ==================== LOGBUCH ==================== -->
     <div id="logbuch" class="tab-content">
         <h3>📓 Änderungshistorie (Logbuch)</h3>
         <div id="logContainer"></div>
@@ -843,7 +852,7 @@
         }
 
         try {
-            const data = { inventory, employees, borrowHistory };
+            const data = { inventory, employees, borrowHistory, actionLog };
             const json = JSON.stringify(data, null, 2);
             const url = cloudSettings.url;
 
@@ -908,11 +917,13 @@
     }
 
     // ======================================================================
-    // 6. DATEN SICHERN (lokal + Cloud)
+    // 6. DATEN SICHERN (lokal + Cloud) – jetzt mit actionLog
     // ======================================================================
     function saveData() {
         localStorage.setItem('inventory', JSON.stringify(inventory));
         localStorage.setItem('employees', JSON.stringify(employees));
+        localStorage.setItem('actionLog', JSON.stringify(actionLog));
+        localStorage.setItem('borrowHistory', JSON.stringify(borrowHistory));
         if (cloudSettings.url) {
             setTimeout(() => { performCloudBackup(true); }, 100);
         }
@@ -949,10 +960,10 @@
     }
 
     // ======================================================================
-    // 9. EXPORT / IMPORT
+    // 9. EXPORT / IMPORT (mit actionLog)
     // ======================================================================
     function exportData() {
-        const data = { inventory, employees, borrowHistory };
+        const data = { inventory, employees, borrowHistory, actionLog };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -971,15 +982,18 @@
                 inventory = data.inventory || [];
                 employees = data.employees || [];
                 borrowHistory = data.borrowHistory || [];
+                actionLog = data.actionLog || [];
                 employees.sort((a, b) => a.name.localeCompare(b.name));
                 inventory.forEach(item => { if (!item.note) item.note = ''; });
                 localStorage.setItem('inventory', JSON.stringify(inventory));
                 localStorage.setItem('employees', JSON.stringify(employees));
                 localStorage.setItem('borrowHistory', JSON.stringify(borrowHistory));
+                localStorage.setItem('actionLog', JSON.stringify(actionLog));
                 updateDynamicDropdowns();
                 renderInventory();
                 renderEmployees();
                 renderBorrowReturnOptions();
+                renderLog();
                 addLogEntry('Daten aus Backup importiert');
                 alert('Daten erfolgreich geladen!');
                 if (cloudSettings.url) performCloudBackup(true);
@@ -1000,11 +1014,29 @@
         document.getElementById(tabId).classList.add('active');
         if(event.target) event.target.classList.add('active');
         
-        if (tabId === 'lager') renderInventory();
-        if (tabId === 'verwalten' || tabId === 'ausleihe') updateDynamicDropdowns();
+        if (tabId === 'lager') {
+            renderInventory();
+            // Aktualisiere die Dropdowns für Einbuchung/Ausbuchung
+            updateDynamicDropdowns();
+            // Setze den Artikeltyp im Einbuchungs-Formular auf die aktuelle Kategorie
+            const typeSelect = document.getElementById('itemType');
+            if (typeSelect && currentInventoryType) {
+                // Prüfen, ob die Kategorie im Dropdown existiert
+                const options = Array.from(typeSelect.options).map(o => o.value);
+                if (options.includes(currentInventoryType)) {
+                    typeSelect.value = currentInventoryType;
+                } else {
+                    // Fallback auf ersten Eintrag
+                    typeSelect.value = options[0] || 'Jacke MEA';
+                }
+                toggleHandschuheArt('itemType', 'handschuheArtGroup');
+            }
+        }
+        if (tabId === 'komplett' || tabId === 'einzel' || tabId === 'umtausch') {
+            renderBorrowReturnOptions();
+        }
         if (tabId === 'logbuch') renderLog();
         renderEmployees();
-        renderBorrowReturnOptions();
     }
 
     function showInventoryType(type, event) {
@@ -1012,6 +1044,15 @@
         document.querySelectorAll('.inventory-tab-btn').forEach(btn => btn.classList.remove('active'));
         event.target.classList.add('active');
         renderInventory();
+        // Aktualisiere auch das Einbuchungs-Dropdown
+        const typeSelect = document.getElementById('itemType');
+        if (typeSelect) {
+            const options = Array.from(typeSelect.options).map(o => o.value);
+            if (options.includes(type)) {
+                typeSelect.value = type;
+            }
+            toggleHandschuheArt('itemType', 'handschuheArtGroup');
+        }
     }
     
     function toggleHandschuheArt(selectId, groupID) {
@@ -1450,6 +1491,7 @@
             if(el) el.innerHTML = '<option value="">-- Junghelfer --</option>' + employees.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
         });
         updateBulkIssueDropdowns();
+        updateDynamicDropdowns(); // für borrowTypeSelect etc.
     }
 
     function updateBorrowSizes() {
